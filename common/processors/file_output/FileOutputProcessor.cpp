@@ -18,11 +18,15 @@
 
 #include <string>
 #include <unordered_map>  // Include the necessary header for HashTable
+#include <vector>
 
+#include "absl/status/status.h"
 #include "data_structures/src/AudioElement.h"
 #include "data_structures/src/FileExport.h"
 #include "data_structures/src/MixPresentationLoudness.h"
+#include "iamf/include/iamf_tools/iamf_encoder_factory.h"
 #include "iamf_export_utils/IAMFExportUtil.h"
+#include "iamf_tools_encoder_api_types.h"
 #include "processors/render/RenderProcessor.h"
 #include "user_metadata.pb.h"
 
@@ -256,9 +260,17 @@ void FileOutputProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     return;
   }
 
-  for (auto& writer : iamfWavFileWriters_) {
-    writer->write(buffer);
+  juce::AudioBuffer<double> doubleBuffer;
+  doubleBuffer.makeCopyOf(buffer);
+  iamf_tools::api::IamfTemporalUnitData temporalUnitData;
+
+  for (int i = 0; i < iamfWavFileWriters_.size(); ++i) {
+    iamfWavFileWriters_[i]->write(buffer);
+
+    convertBufferToIamfTemporalUnitData(temporalUnitData, doubleBuffer, i);
   }
+
+  iamfEncoder_.value()->Encode(temporalUnitData);
 }
 
 //==============================================================================
@@ -271,6 +283,7 @@ juce::AudioProcessorEditor* FileOutputProcessor::createEditor() {
 void FileOutputProcessor::initializeFileExport(FileExport& config) {
   LOG_ANALYTICS(0, "Beginning .iamf file export");
   performingRender_ = true;
+  std::string_view exportFile = config.getExportFile().toStdString();
   startTime_ = config.getStartTime();
   endTime_ = config.getEndTime();
 
@@ -290,6 +303,9 @@ void FileOutputProcessor::initializeFileExport(FileExport& config) {
         config.getAudioCodec(), *audioElements[i]));
   }
   sampleTally_ = 0;
+  iamfEncoder_ =
+      iamf_tools::api::IamfEncoderFactory::CreateFileGeneratingIamfEncoder(
+          iamfMetadata_, exportFile);
 }
 
 void FileOutputProcessor::closeFileExport(FileExport& config) {
@@ -301,12 +317,19 @@ void FileOutputProcessor::closeFileExport(FileExport& config) {
   juce::File outputFile = juce::File(config.getExportFile());
   outputFile.deleteFile();
 
-  bool exportIAMFSuccess =
-      exportIamfFile(config.getExportFolder(), config.getExportFolder());
+  bool finalizeEncode = iamfEncoder_.value()->FinalizeEncode().ok();
+
+  while (iamfEncoder_.value()->GeneratingTemporalUnits()) {
+    std::vector<uint8_t> temporal_unit_obus;
+    iamfEncoder_.value()->OutputTemporalUnit(temporal_unit_obus);
+  }
+
+  // bool exportIAMFSuccess =
+  //     exportIamfFile(config.getExportFolder(), config.getExportFolder());
 
   // If muxing is enabled and audio export was successful, mux the audio and
   // video files.
-  if (exportIAMFSuccess && fileExportRepository_.get().getExportVideo()) {
+  if (fileExportRepository_.get().getExportVideo()) {
     bool muxIAMFSuccess = IAMFExportHelper::muxIAMF(
         audioElementRepository_, mixPresentationRepository_,
         fileExportRepository_.get());
@@ -350,4 +373,23 @@ bool FileOutputProcessor::shouldBufferBeWritten(
     }
   }
   return true;
+}
+
+void FileOutputProcessor::convertBufferToIamfTemporalUnitData(
+    iamf_tools::api::IamfTemporalUnitData& temporalUnitData,
+    const juce::AudioBuffer<double>& buffer, const int index) {
+  temporalUnitData.parameter_block_id_to_metadata[index] = {};
+
+  AudioElement audioElement = iamfWavFileWriters_[index]->getElement();
+  std::vector<iamf_tools_cli_proto::ChannelLabel> channelLabels =
+      audioElement.getChannelConfig().getIamfChannelLabels();
+
+  iamf_tools::api::IamfAudioElementData audioElementData;
+
+  for (int j = 0; j < channelLabels.size(); ++j) {
+    absl::Span<const double> channelData(buffer.getReadPointer(j),
+                                         buffer.getNumSamples());
+    audioElementData[channelLabels[j]] = channelData;
+  }
+  temporalUnitData.audio_element_id_to_data[index] = audioElementData;
 }

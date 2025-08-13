@@ -34,6 +34,8 @@
 #include "data_repository/implementation/MixPresentationLoudnessRepository.h"
 #include "iamf/include/iamf_tools/encoder_main_lib.h"
 #include "iamf/include/iamf_tools/iamf_encoder_factory.h"
+#include "iamf/include/iamf_tools/iamf_encoder_interface.h"
+#include "iamf_tools_encoder_api_types.h"
 #include "user_metadata.pb.h"
 
 //==============================================================================
@@ -116,12 +118,19 @@ class FileOutputProcessor : public ProcessorBase {
 
   bool shouldBufferBeWritten(const juce::AudioBuffer<float>& buffer);
 
+  void convertBufferToIamfTemporalUnitData(
+      iamf_tools::api::IamfTemporalUnitData& temporalUnitData,
+      const juce::AudioBuffer<double>& buffer, const int index);
+
   bool performingRender_;  // True if we are rendering in offline mode
   FileExportRepository& fileExportRepository_;
   AudioElementRepository& audioElementRepository_;
   MixPresentationRepository& mixPresentationRepository_;
   MixPresentationLoudnessRepository& mixPresentationLoudnessRepository_;
   std::vector<std::unique_ptr<AudioElementFileWriter>> iamfWavFileWriters_;
+  absl::StatusOr<std::unique_ptr<iamf_tools::api::IamfEncoderInterface>>
+      iamfEncoder_;
+  iamf_tools_cli_proto::UserMetadata iamfMetadata_;
   int numSamples_;
   long sampleRate_;
   int startTime_;

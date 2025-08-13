@@ -11,6 +11,33 @@ set_target_properties(iamftools_dylib PROPERTIES
   IMPORTED_SONAME "libiamf_renderer_encoder.dylib"
   LINKER_LANGUAGE CXX)
 
+add_library(encoder_factory_dylib SHARED IMPORTED)
+set_target_properties(encoder_factory_dylib PROPERTIES
+  IMPORTED_LOCATION         "${CMAKE_CURRENT_LIST_DIR}/lib/libiamf_encoder_factory_shared.dylib"
+  IMPORTED_LOCATION_DEBUG   "${CMAKE_CURRENT_LIST_DIR}/lib/libiamf_encoder_factory_shared.dylib"
+  IMPORTED_LOCATION_RELEASE "${CMAKE_CURRENT_LIST_DIR}/lib/libiamf_encoder_factory_shared.dylib"
+  IMPORTED_LOCATION_RELWITHDEBINFO "${CMAKE_CURRENT_LIST_DIR}/lib/libiamf_encoder_factory_shared.dylib"
+  IMPORTED_SONAME "libiamf_encoder_factory_shared.dylib"
+  LINKER_LANGUAGE CXX)
+
+add_library(decoder_factory_dylib SHARED IMPORTED)
+set_target_properties(decoder_factory_dylib PROPERTIES
+  IMPORTED_LOCATION         "${CMAKE_CURRENT_LIST_DIR}/lib/libiamf_decoder_factory_shared.dylib"
+  IMPORTED_LOCATION_DEBUG   "${CMAKE_CURRENT_LIST_DIR}/lib/libiamf_decoder_factory_shared.dylib"
+  IMPORTED_LOCATION_RELEASE "${CMAKE_CURRENT_LIST_DIR}/lib/libiamf_decoder_factory_shared.dylib"
+  IMPORTED_LOCATION_RELWITHDEBINFO "${CMAKE_CURRENT_LIST_DIR}/lib/libiamf_decoder_factory_shared.dylib"
+  IMPORTED_SONAME "libiamf_decoder_factory_shared.dylib"
+  LINKER_LANGUAGE CXX)
+
+add_library(iamf_tools_shared_dylib SHARED IMPORTED)
+set_target_properties(iamf_tools_shared_dylib PROPERTIES
+  IMPORTED_LOCATION         "${CMAKE_CURRENT_LIST_DIR}/lib/libiamf_tools_shared.dylib"
+  IMPORTED_LOCATION_DEBUG   "${CMAKE_CURRENT_LIST_DIR}/lib/libiamf_tools_shared.dylib"
+  IMPORTED_LOCATION_RELEASE "${CMAKE_CURRENT_LIST_DIR}/lib/libiamf_tools_shared.dylib"
+  IMPORTED_LOCATION_RELWITHDEBINFO "${CMAKE_CURRENT_LIST_DIR}/lib/libiamf_tools_shared.dylib"
+  IMPORTED_SONAME "libiamf_tools_shared.dylib"
+  LINKER_LANGUAGE CXX)
+
 # Parse the commit hash
 # Set the path to the README.md file
 set(README_FILE "${CMAKE_CURRENT_LIST_DIR}/README.md")
@@ -50,7 +77,7 @@ set(PROTO_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
 # Generate protobuf files
 add_library(proto-objects OBJECT ${PROTO_FILES})
-target_include_directories(proto-objects PUBLIC "${CMAKE_CURRENT_BINARY_DIR}" "${PROTO_BINARY_DIR}/iamf/cli/proto" "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/iamf/include/iamf_tools")
+target_include_directories(proto-objects PUBLIC "${CMAKE_CURRENT_BINARY_DIR}" "${PROTO_BINARY_DIR}/iamf/cli/proto")
 target_link_libraries(proto-objects PUBLIC protobuf::libprotobuf)
 protobuf_generate(
   TARGET proto-objects
@@ -61,6 +88,9 @@ protobuf_generate(
 target_link_libraries(iamftools
   INTERFACE
     iamftools_dylib
+    encoder_factory_dylib
+    decoder_factory_dylib
+    iamf_tools_shared_dylib
     proto-objects
 )
 
