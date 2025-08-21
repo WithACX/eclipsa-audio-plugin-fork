@@ -1,5 +1,5 @@
 - Compiled from: https://github.com/AOMediaCodec/iamf-tools.git
-- Commit: https://github.com/AOMediaCodec/iamf-tools/commit/93471884b25e8a5bb7ef43c1330aa90b37a574b0
+- Commit: https://github.com/AOMediaCodec/iamf-tools/commit/bee0f286f7d3928551e2fb37b5961b709eb1f714
 - Version: 1.0.0
 
 ### Update notes

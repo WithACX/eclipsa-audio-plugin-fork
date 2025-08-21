@@ -32,10 +32,10 @@
 #include "../processor_base/ProcessorBase.h"
 #include "AudioElementFileWriter.h"
 #include "data_repository/implementation/MixPresentationLoudnessRepository.h"
-#include "iamf/include/iamf_tools/encoder_main_lib.h"
 #include "iamf/include/iamf_tools/iamf_encoder_factory.h"
 #include "iamf/include/iamf_tools/iamf_encoder_interface.h"
 #include "iamf_tools_encoder_api_types.h"
+#include "parameter_block.pb.h"
 #include "user_metadata.pb.h"
 
 //==============================================================================
@@ -130,7 +130,9 @@ class FileOutputProcessor : public ProcessorBase {
   std::vector<std::unique_ptr<AudioElementFileWriter>> iamfWavFileWriters_;
   absl::StatusOr<std::unique_ptr<iamf_tools::api::IamfEncoderInterface>>
       iamfEncoder_;
-  iamf_tools_cli_proto::UserMetadata iamfMetadata_;
+  const std::vector<double> testSamples{0.25, 0.5, 0.75, 0.5, 0.25, 0, 0.25};
+  std::unordered_map<juce::Uuid, int> audioElementIDMap_;
+  iamf_tools::api::IamfAudioElementData audioElementData_;
   int numSamples_;
   long sampleRate_;
   int startTime_;

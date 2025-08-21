@@ -103,9 +103,16 @@ void AudioElement::populateIamfAudioElementMetadata(
   int aeCoupledSubstreams = channelConfig_.getCoupledChannelCount();
   int aeUncoupledSubstreams = channelConfig_.getUncoupledChannelCount();
   aeMD->set_num_substreams(aeCoupledSubstreams + aeUncoupledSubstreams);
+  juce::Logger::outputDebugString("DEBUG NUM SUB-STREAMS: " +
+                                  juce::String(aeMD->num_substreams()));
   for (int i = minimumSubstreamId;
        i < aeMD->num_substreams() + minimumSubstreamId; ++i) {
     aeMD->add_audio_substream_ids(i);
+    // int index = i - minimumSubstreamId;
+    // juce::Logger::outputDebugString(
+    //     "DEBUG setting audio substream index: " + juce::String(index) +
+    //     " to value: " + juce::String(i));
+    // aeMD->set_audio_substream_ids(index, i);
   }
   minimumSubstreamId = minimumSubstreamId + aeMD->num_substreams();
 
