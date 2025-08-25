@@ -42,4 +42,8 @@ juce_add_binary_data(binary_data
         Edit.png
         settings.png
         Line.png
-        close.png)
+        close.png
+        Play.png
+        Pause.png
+        Stop.png
+        Speaker.png)

@@ -44,7 +44,9 @@ RendererProcessor::RendererProcessor()
       fileExportRepository_(getTreeWithId(kFileExportKey)),
       msPlaybackRepository_(getTreeWithId(kMSPlaybackKey)),
       activeMixPresentationRepository_(getTreeWithId(kActiveMixKey)),
-      isRealtime_(true) {
+      filePlaybackRepository_(getTreeWithId(kFilePlaybackKey)),
+      isRealtime_(true),
+      iamfTransport_(2, &filePlaybackRepository_, &playbackMonitorData_) {
   // Initialize Logger
   Logger::getInstance().init("EclipsaRenderer");
 
@@ -357,6 +359,12 @@ void RendererProcessor::updateRepositories() {
       persistentState_.getChildWithName(kMixPresentationSoloMuteKey);
   if (mixPresMuteSolo.isValid()) {
     mixPresentationSoloMuteRepository_.setStateTree(mixPresMuteSolo);
+  }
+
+  juce::ValueTree filePlayback =
+      persistentState_.getChildWithName(kFilePlaybackKey);
+  if (filePlayback.isValid()) {
+    filePlaybackRepository_.setStateTree(filePlayback);
   }
 }
 

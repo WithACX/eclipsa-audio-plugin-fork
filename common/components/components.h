@@ -32,7 +32,9 @@ END_JUCE_MODULE_DECLARATION
 
 #endif
 
+#include "src/AudioPlayer.h"
 #include "src/ChannelListComponent.h"
+#include "src/ColouredSlider.h"
 #include "src/DAWCompatibilityChecker.h"
 #include "src/DAWWarningBanner.h"
 #include "src/DialIndicator.h"
@@ -41,6 +43,7 @@ END_JUCE_MODULE_DECLARATION
 #include "src/Icons.h"
 #include "src/MainEditor.h"
 #include "src/RoomSetupScreen.h"
+#include "src/RoundImageButton.h"
 #include "src/RoundedRectangle.h"
 #include "src/SegmentedToggleButton.h"
 #include "src/SegmentedToggleImageButton.h"

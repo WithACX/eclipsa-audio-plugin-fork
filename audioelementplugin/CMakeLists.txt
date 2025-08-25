@@ -55,6 +55,7 @@ target_link_libraries(AudioElementPlugin
         substream_rdr
         processors
         components
+        player
         logger
         data_repository
         data_structures

@@ -24,7 +24,7 @@ class RoomMonitoringScreen : public juce::Component,
                              public juce::Timer {
  public:
   RoomMonitoringScreen(RepositoryCollection repos, SpeakerMonitorData& data,
-                       MainEditor& editor);
+                       PlaybackMonitorData& playbackData, MainEditor& editor);
   ~RoomMonitoringScreen();
 
   void paint(juce::Graphics& g);
