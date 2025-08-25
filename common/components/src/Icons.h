@@ -76,4 +76,8 @@ class IconStore {
   LOAD_IMAGE(settings);
   LOAD_IMAGE(Line);
   LOAD_IMAGE(close);
+  LOAD_IMAGE(Play);
+  LOAD_IMAGE(Pause);
+  LOAD_IMAGE(Stop);
+  LOAD_IMAGE(Speaker);
 };

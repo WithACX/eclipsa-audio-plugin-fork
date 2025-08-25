@@ -30,6 +30,7 @@
 #include "data_structures/src/AudioElementCommunication.h"
 #include "data_structures/src/ChannelMonitorData.h"
 #include "data_structures/src/RepositoryCollection.h"
+#include "player/src/transport/IAMFTransport.h"
 #include "processors/processor_base/ProcessorBase.h"
 
 //==============================================================================
@@ -91,12 +92,14 @@ class RendererProcessor final : public ProcessorBase,
             audioElementSpatialLayoutRepository_,
             msPlaybackRepository_,
             audioElementSubscriber_,
-            activeMixPresentationRepository_};
+            activeMixPresentationRepository_,
+            filePlaybackRepository_};
   }
 
   RoomSetupRepository& getRoomSetupRepository() { return roomSetupRepository_; }
   SpeakerMonitorData& getSpeakerMonitorData() { return monitorData_; }
   ChannelMonitorData& getChannelMonitorData() { return channelMonitorData_; }
+  PlaybackMonitorData& getPlaybackMonitorData() { return playbackMonitorData_; }
 
   void updateAudioElementPluginInformation(
       AudioElementSpatialLayout& audioElementSpatialLayout) override {
@@ -164,11 +167,18 @@ class RendererProcessor final : public ProcessorBase,
   ActiveMixRepository activeMixPresentationRepository_;
   inline static const juce::Identifier kActiveMixKey{"active_mix"};
 
+  FilePlaybackRepository filePlaybackRepository_;
+  inline static const juce::Identifier kFilePlaybackKey{"file_playback"};
+
   SpeakerMonitorData monitorData_;
 
   ChannelMonitorData channelMonitorData_;
 
+  PlaybackMonitorData playbackMonitorData_;
+
   juce::AudioChannelSet outputChannelSet_ = juce::AudioChannelSet::stereo();
+
+  IAMFTransport iamfTransport_;
 
   // Used by the debug build to prevent processing while changing
   // to non-realtime mode

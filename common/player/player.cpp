@@ -11,18 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#include "player.h"
 
-#include "data_structures.h"
-
-#include "src/ActiveMixPresentation.cpp"
-#include "src/AudioElement.cpp"
-#include "src/AudioElementSpatialLayout.cpp"
-#include "src/ChannelGains.cpp"
-#include "src/FileExport.cpp"
-#include "src/FilePlayback.cpp"
-#include "src/LanguageCodeMetaData.cpp"
-#include "src/MixPresentation.cpp"
-#include "src/MixPresentationLoudness.cpp"
-#include "src/MixPresentationSoloMute.cpp"
-#include "src/PlaybackMS.cpp"
-#include "src/RoomSetup.cpp"
+#include "src/transport/IAMFTransport.cpp"

@@ -26,11 +26,13 @@
 #include "data_repository/implementation/FileExportRepository.h"
 #include "data_repository/implementation/MixPresentationRepository.h"
 #include "data_structures/src/FileExport.h"
+#include "player/player.h"
 
 class FileExportScreen : public juce::Component,
                          public juce::ValueTree::Listener {
  public:
-  FileExportScreen(MainEditor& editor, RepositoryCollection repos);
+  FileExportScreen(MainEditor& editor, RepositoryCollection repos,
+                   PlaybackMonitorData* playbackMonitorData);
 
   ~FileExportScreen();
 
@@ -55,10 +57,13 @@ class FileExportScreen : public juce::Component,
   int stringToTime(juce::String val);
 
   bool validFileExportConfig(const FileExport& config);
+  bool loadFileForPlayback();
 
   FileExportRepository* repository_;
   AudioElementRepository* aeRepository_;
   MixPresentationRepository* mpRepository_;
+  FilePlaybackRepository* filePlaybackRepository_;
+  PlaybackMonitorData* playbackMonitorData_;
 
   /*
    * ==============================
@@ -69,6 +74,7 @@ class FileExportScreen : public juce::Component,
   HeaderBar headerBar_;
 
   // Left side elements
+  juce::Label exportParametersLabel_;
   TitledTextBox startTimer_;
   juce::Label startTimerErrorLabel_;
   TitledTextBox endTimer_;
@@ -95,6 +101,15 @@ class FileExportScreen : public juce::Component,
   juce::ImageButton browseVideoButton_;
   TitledTextBox videoSource_;
   juce::ImageButton browseVideoSourceButton_;
+
+  // Player elements
+  juce::Label exportValidationLabel_;
+  AudioPlayerComponent audioPlayer_;
+  SelectionBox mixPresentationSelector_;
+  juce::Label mixElementsLabel_;
+  juce::Label mixElementsListLabel_;
+  juce::Label mixLoudnessLabel_;
+  juce::Label mixLoudnessValueLabel_;
 
   // File selection elements
   juce::FileChooser audioOutputSelect_;
