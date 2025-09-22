@@ -60,8 +60,8 @@ class FileOutputTests : public ::testing::Test {
   using Layout = Speakers::AudioElementSpeakerLayout;
 
   // Constants
-  static const int kSampleRate = 16e3;
-  static const int kSamplesPerFrame = 128;
+  static constexpr int kSampleRate = 16e3;
+  static constexpr int kSamplesPerFrame = 128;
 
  protected:
   FileOutputTests()
