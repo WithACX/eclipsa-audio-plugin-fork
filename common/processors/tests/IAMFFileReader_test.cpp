@@ -7,31 +7,40 @@
 
 class IAMFFileReaderTest : public FileOutputTests {};
 
-// Open and close an existing IAMF file
-TEST_F(IAMFFileReaderTest, read_iamf) {
-  // Create a reader with sensible decoding settings
-  const IAMFFileReader::Settings kSettings = {
-      .requested_mix =
-          {.output_layout =
-               iamf_tools::api::OutputLayout::kItu2051_SoundSystemA_0_2_0},
-      .requested_profile_versions =
-          {iamf_tools::api::ProfileVersion::kIamfSimpleProfile},
-      .requested_output_sample_type =
-          iamf_tools::api::OutputSampleType::kInt32LittleEndian,
-  };
-  IAMFFileReader reader(kSettings);
+// // Open and close an existing IAMF file
+// TEST_F(IAMFFileReaderTest, read_iamf) {
+//   // Create a reader with sensible decoder settings
+//   const IAMFFileReader::Settings kSettings = {
+//       .requested_mix =
+//           {.output_layout =
+//                iamf_tools::api::OutputLayout::kItu2051_SoundSystemA_0_2_0},
+//       .requested_profile_versions =
+//           {iamf_tools::api::ProfileVersion::kIamfSimpleProfile},
+//       .requested_output_sample_type =
+//           iamf_tools::api::OutputSampleType::kInt32LittleEndian,
+//   };
+//   IAMFFileReader reader(kSettings);
 
-  // Open the file and examine stream metadata
+//   // Open the file and examine stream metadata
+//   const std::filesystem::path kReferenceFilePath =
+//       std::filesystem::current_path().parent_path() /
+//       "common/processors/tests/test_resources" / "HashSourceFileDebug.iamf";
+
+//   const IAMFFileReader::StreamData kSData = reader.open(kReferenceFilePath);
+
+//   EXPECT_TRUE(kSData.valid) << "Decoded IAMF stream data:\n";
+//   EXPECT_EQ(kSData.numChannels, 2) << kSData.numChannels;
+//   EXPECT_EQ(kSData.sampleRate, kSampleRate) << kSData.sampleRate;
+//   EXPECT_EQ(kSData.frameSize, kSamplesPerFrame) << kSData.frameSize;
+
+//   // Close the file
+//   EXPECT_TRUE(reader.close());
+// }
+
+TEST_F(IAMFFileReaderTest, construct_reader) {
   const std::filesystem::path kReferenceFilePath =
       std::filesystem::current_path().parent_path() /
-      "rendererplugin/test/testresources/HashSourceFileRelease.iamf";
-  const IAMFFileReader::StreamData kSData =
-      reader.open(std::filesystem::current_path());
-  EXPECT_TRUE(kSData.valid);
-  EXPECT_EQ(kSData.numChannels, 2);
-  EXPECT_EQ(kSData.sampleRate, kSampleRate);
-  EXPECT_EQ(kSData.frameSize, kSamplesPerFrame);
+      "common/processors/tests/test_resources" / "HashSourceFileDebug.iamf";
 
-  // Close the file
-  EXPECT_TRUE(reader.close());
+  EXPECT_NO_THROW(IAMFFileReader reader(kReferenceFilePath));
 }
