@@ -32,6 +32,21 @@ static std::unique_ptr<juce::AudioFormatWriter> prepareWriter(
   return writer;
 }
 
+// Helper function to compare audio buffers with tolerance
+static void compareAudioBuffers(const juce::AudioBuffer<float>& actualBuffer,
+                                const juce::AudioBuffer<float>& referenceBuffer,
+                                float tolerance = 0.0001f) {
+  const int numChannels = actualBuffer.getNumChannels();
+  const int frameSize = actualBuffer.getNumSamples();
+
+  for (int ch = 0; ch < numChannels; ++ch) {
+    for (int smp = 0; smp < frameSize; ++smp) {
+      ASSERT_NEAR(actualBuffer.getSample(ch, smp),
+                  referenceBuffer.getSample(0, smp), tolerance);
+    }
+  }
+}
+
 class IAMFFileReaderTest : public FileOutputTests {};
 
 const std::filesystem::path kReferenceFilePath =
@@ -39,7 +54,6 @@ const std::filesystem::path kReferenceFilePath =
 
 TEST_F(IAMFFileReaderTest, open_iamf) {
   createBasicIAMFFile(kReferenceFilePath);
-
   // Create a reader with sensible decoder settings
   const IAMFFileReader::Settings kSettings = {
       .requested_mix =
@@ -52,7 +66,6 @@ TEST_F(IAMFFileReaderTest, open_iamf) {
   };
 
   IAMFFileReader reader(kReferenceFilePath, kSettings);
-
   const IAMFFileReader::StreamData kSData = reader.getStreamData();
   EXPECT_TRUE(kSData.valid) << "Decoded IAMF stream data:\n";
   EXPECT_EQ(kSData.numChannels, 2) << kSData.numChannels;
@@ -94,17 +107,10 @@ TEST_F(IAMFFileReaderTest, read_same) {
       generateSineWave(440.0f, 48000, kSamplesPerFrame);
 
   juce::AudioBuffer<float> buffer(kSData.numChannels, kSData.frameSize);
-  int totalFramesRead = 0;
-  size_t samplesRead = 0;
+  size_t totalFramesRead = 0, samplesRead = 0;
   while ((samplesRead = reader.readFrame(buffer)) > 0) {
     ASSERT_EQ(samplesRead, (size_t)kSData.frameSize);
-
-    for (int ch = 0; ch < kSData.numChannels; ++ch) {
-      for (int smp = 0; smp < kSData.frameSize; ++smp) {
-        ASSERT_NEAR(buffer.getSample(ch, smp),
-                    kReferenceBuffer.getSample(0, smp), 0.0001f);
-      }
-    }
+    compareAudioBuffers(buffer, kReferenceBuffer);
     totalFramesRead++;
   }
 
