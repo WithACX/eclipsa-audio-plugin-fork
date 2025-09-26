@@ -77,6 +77,22 @@ class FileOutputTests : public ::testing::Test {
     bounceAudio(fio_proc, audioElementRepository);
   }
 
+  void createIAMFFile2AE2MP(const std::filesystem::path& path) {
+    const Layout kLayout1 = Speakers::kStereo;
+    const Layout kLayout2 = Speakers::k5Point1Point4;
+    const juce::Uuid kAE1 = addAudioElement(kLayout1);
+    const juce::Uuid kAE2 = addAudioElement(kLayout2);
+    const juce::Uuid kMP1 = addMixPresentation();
+    const juce::Uuid kMP2 = addMixPresentation();
+    addAudioElementsToMix(kMP1, {kAE1});
+    addAudioElementsToMix(kMP2, {kAE2});
+
+    setTestExportOpts(
+        {AudioCodec::LPCM, .profile = FileProfile::BASE_ENHANCED});
+
+    bounceAudio(fio_proc, audioElementRepository);
+  }
+
  protected:
   FileOutputTests()
       : ex(fileExportRepository.get()),

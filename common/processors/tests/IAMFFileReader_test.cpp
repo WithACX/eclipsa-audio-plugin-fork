@@ -1,12 +1,36 @@
 #include "../file_output/iamf_export_utils/IAMFFileReader.h"
 
 #include <gtest/gtest.h>
+#include <juce_audio_formats/juce_audio_formats.h>
 
 #include <filesystem>
 
 #include "FileOutputTestFixture.h"
 #include "iamf_tools_api_types.h"
 #include "processors/tests/FileOutputTestUtils.h"
+
+// Macro to enable writing rendered output to a file for debugging purposes.
+#define RDR_TO_FILE
+
+// Function for debug
+static std::unique_ptr<juce::AudioFormatWriter> prepareWriter(
+    const int sampleRate, const int numChannels, const juce::String& filename) {
+  juce::File outputFile = juce::File::getCurrentWorkingDirectory()
+                              .getParentDirectory()
+                              .getChildFile(filename);
+  juce::WavAudioFormat wavFormat;
+  std::unique_ptr<juce::FileOutputStream> outputStream(
+      outputFile.createOutputStream());
+  std::unique_ptr<juce::AudioFormatWriter> writer(
+      wavFormat.createWriterFor(outputStream.get(), sampleRate, numChannels,
+                                16,   // Bits per sample
+                                {},   // Metadata
+                                0));  // Default compression
+  if (writer) {
+    [[maybe_unused]] auto* released = outputStream.release();
+  }
+  return writer;
+}
 
 class IAMFFileReaderTest : public FileOutputTests {};
 
@@ -32,17 +56,34 @@ TEST_F(IAMFFileReaderTest, open_iamf) {
   const IAMFFileReader::StreamData kSData = reader.getStreamData();
   EXPECT_TRUE(kSData.valid) << "Decoded IAMF stream data:\n";
   EXPECT_EQ(kSData.numChannels, 2) << kSData.numChannels;
-  // Note: All input audio is resampled to 48kHz during IAMF encoding!
-  EXPECT_EQ(kSData.sampleRate, 48e3) << kSData.sampleRate;
+  EXPECT_EQ(kSData.sampleRate, 48e3)
+      << kSData.sampleRate;  // Note: All input audio is resampled to 48kHz
+                             // during IAMF encoding!
   EXPECT_EQ(kSData.frameSize, kSamplesPerFrame) << kSData.frameSize;
 }
 
-TEST_F(IAMFFileReaderTest, select_mix_presentation) {}
+TEST_F(IAMFFileReaderTest, open_iamf_different_playback) {
+  createBasicIAMFFile(kReferenceFilePath);
 
-// The best way to test this reader is to write an IAMF file and keep the
-// samples in memory. Then read the IAMF file back and compare the samples read
-// against the original samples.
-TEST_F(IAMFFileReaderTest, validate_readback) {
+  // Create a reader with sensible decoder settings
+  const IAMFFileReader::Settings kSettings = {
+      .requested_mix =
+          {.output_layout =
+               iamf_tools::api::OutputLayout::kItu2051_SoundSystemB_0_5_0},
+  };
+  IAMFFileReader reader(kReferenceFilePath, kSettings);
+
+  const IAMFFileReader::StreamData kSData = reader.getStreamData();
+  EXPECT_TRUE(kSData.valid) << "Decoded IAMF stream data:\n";
+  EXPECT_EQ(kSData.numChannels, 6) << kSData.numChannels;
+  EXPECT_EQ(kSData.sampleRate, 48e3)
+      << kSData.sampleRate;  // Note: All input audio is resampled to 48kHz
+                             // during IAMF encoding!
+  EXPECT_EQ(kSData.frameSize, kSamplesPerFrame) << kSData.frameSize;
+}
+
+// Construct the decoder with an output layout that matches the AE in the file
+TEST_F(IAMFFileReaderTest, read_same) {
   createBasicIAMFFile(kReferenceFilePath);
 
   IAMFFileReader reader(kReferenceFilePath);
@@ -57,16 +98,29 @@ TEST_F(IAMFFileReaderTest, validate_readback) {
   size_t samplesRead = 0;
   while ((samplesRead = reader.readFrame(buffer)) > 0) {
     ASSERT_EQ(samplesRead, (size_t)kSData.frameSize);
-    // We expect each frame to closely match the reference buffer
+
     for (int ch = 0; ch < kSData.numChannels; ++ch) {
       for (int smp = 0; smp < kSData.frameSize; ++smp) {
-        EXPECT_NEAR(buffer.getSample(ch, smp),
-                    kReferenceBuffer.getSample(0, smp), 0.01f)
-            << "Channel " << ch << " Sample " << smp;
+        ASSERT_NEAR(buffer.getSample(ch, smp),
+                    kReferenceBuffer.getSample(0, smp), 0.0001f);
       }
     }
     totalFramesRead++;
   }
 
   EXPECT_EQ(totalFramesRead, 8);  // We bounced 8 blocks of audio
+}
+
+// Construct the decoder with an output layout that does not match the AE in the
+// file
+TEST_F(IAMFFileReaderTest, read_different) {
+  createIAMFFile2AE2MP(kReferenceFilePath);
+  const IAMFFileReader::Settings kSettings = {
+      .requested_mix =
+          {.output_layout =
+               iamf_tools::api::OutputLayout::kItu2051_SoundSystemB_0_5_0},
+  };
+  IAMFFileReader reader(kReferenceFilePath, kSettings);
+  const IAMFFileReader::StreamData kSData = reader.getStreamData();
+  ASSERT_TRUE(kSData.valid);
 }

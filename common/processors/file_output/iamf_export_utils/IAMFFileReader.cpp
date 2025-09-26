@@ -46,8 +46,7 @@ IAMFFileReader::StreamData IAMFFileReader::getStreamData(
     std::unique_ptr<Decoder>& decoder, std::filesystem::path filePath) {
   IAMFFileReader::StreamData streamData{.valid = false};
 
-  std::unique_ptr<std::ifstream> fileStream_(
-      new std::ifstream(filePath, std::ios::binary));
+  fileStream_ = std::make_unique<std::ifstream>(filePath, std::ios::binary);
 
   if (!fileStream_->is_open()) {
     return streamData;
@@ -88,7 +87,7 @@ IAMFFileReader::StreamData IAMFFileReader::parseOBUs(
 }
 
 bool IAMFFileReader::prepareTemporalUnit(std::unique_ptr<Decoder>& decoder) {
-  // Development note: Try to avoid reallocations of this bugger
+  // Development note: Try to avoid reallocations of this buffer
   const size_t kBufferSize = 4096;
   std::unique_ptr<char[]> bufferData = std::make_unique<char[]>(kBufferSize);
 
@@ -97,14 +96,23 @@ bool IAMFFileReader::prepareTemporalUnit(std::unique_ptr<Decoder>& decoder) {
         fileStream_->gcount() > 0) {
       iamfDecoder_->Decode(reinterpret_cast<const uint8_t*>(bufferData.get()),
                            fileStream_->gcount());
+    } else {
+      // End of file reached, signal decoder to flush remaining temporal units
+      iamfDecoder_->SignalEndOfDecoding();
+      if (!iamfDecoder_->IsTemporalUnitAvailable()) {
+        return false;
+      } else {
+        return true;
+      }
     }
   }
+  return true;
 }
 
 void convertAndCopyChannelMajor(const int32_t* input,
                                 juce::AudioBuffer<float>& output,
                                 int numSamples, int numChannels) {
-  constexpr float kScale = 1.0f / 32768.0f;
+  constexpr float kScale = 1.0f / INT32_MAX;
 
   for (int channel = 0; channel < numChannels; ++channel) {
     float* out = output.getWritePointer(channel);
@@ -120,20 +128,16 @@ void convertAndCopyChannelMajor(const int32_t* input,
 }
 
 size_t IAMFFileReader::readFrame(juce::AudioBuffer<float>& buffer) {
-  // Get a chunk of data from the IAMF file stream - what's a good size here?
-  // Decode the chunk.
-  // Make sure there is a temporal unit available to read
-  // Read the temporal unit into some buffer - we probably need to reformat here
-  // Copy the data into the provided buffer
-
-  // Refining:
-  // If there's not a temporal unit available, decode another chunk
-  // Get the output temporal unit. Format and copy samples to the JUCE buffer
+  jassert(buffer.getNumChannels() == streamData_.numChannels);
+  jassert(buffer.getNumSamples() == streamData_.frameSize);
   if (!streamData_.valid || !iamfDecoder_) {
     return 0;
   }
 
-  prepareTemporalUnit(iamfDecoder_);
+  if (!prepareTemporalUnit(iamfDecoder_)) {
+    return 0;
+  }
+
   const size_t kPCMSampleBufferSize =
       streamData_.frameSize * streamData_.numChannels * sizeof(int32_t);
   std::unique_ptr<char[]> sampleBuffer = std::make_unique<char[]>(
@@ -145,16 +149,13 @@ size_t IAMFFileReader::readFrame(juce::AudioBuffer<float>& buffer) {
       bytesRead);
   size_t samplesRead = 0;
   if (bytesRead > 0) {
-    // Bytes are formatted as 32-bit ints.
-    // Samples are interleaved PCM. We need to parse out all the sample in the
-    // buffer from interleaved ints to distinct channel floats.
+    // Samples are interleaved 32-bit ints to be parsed out
     const size_t kSampsTotal = bytesRead / sizeof(int32_t);
     const size_t kSampsPerCh = kSampsTotal / streamData_.numChannels;
 
-    // Debug: Asserting this for now, can be a conditional check
-    jassert(kSampsTotal / streamData_.numChannels == streamData_.frameSize);
-    jassert(buffer.getNumChannels() == streamData_.numChannels);
-    jassert(buffer.getNumSamples() == streamData_.frameSize);
+    if (kSampsTotal / streamData_.numChannels != streamData_.frameSize) {
+      // Do we do anything if we don't have a complete frame?
+    }
 
     for (int i = 0; i < streamData_.numChannels; ++i) {
       convertAndCopyChannelMajor(reinterpret_cast<int32_t*>(sampleBuffer.get()),
