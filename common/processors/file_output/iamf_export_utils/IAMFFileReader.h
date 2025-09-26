@@ -2,21 +2,23 @@
 #include <juce_audio_basics/juce_audio_basics.h>
 
 #include <filesystem>
+#include <memory>
 
 #include "iamf/include/iamf_tools/iamf_decoder_factory.h"
 #include "iamf/include/iamf_tools/iamf_decoder_interface.h"
+#include "substream_rdr/substream_rdr_utils/Speakers.h"
 
 class IAMFFileReader {
  public:
   using Settings = iamf_tools::api::IamfDecoderFactory::Settings;
+  using Decoder = iamf_tools::api::IamfDecoderInterface;
 
   // Data about the stream to be read from the IAMF file
   struct StreamData {
-    std::vector<void*> mixes;
     int numChannels = 0;
     unsigned sampleRate = 0;
     unsigned frameSize = 0;
-    char descriptorOBUs[4096] = {0};
+    Speakers::AudioElementSpeakerLayout playbackLayout = Speakers::kUnknown;
     bool valid = false;
   };
 
@@ -26,28 +28,22 @@ class IAMFFileReader {
                  const Settings& settings = kDefaultReaderSettings);
   ~IAMFFileReader() = default;
 
-  StreamData getStreamData() const { return kStreamData_; }
-  void* getCurrentMix() const;
-  bool setCurrentMix(const void* mix);
-  unsigned readFrame(juce::AudioBuffer<float>& buffer);
-  unsigned readFrame(juce::AudioBuffer<double>& buffer);
+  StreamData getStreamData() const { return streamData_; }
+  size_t readFrame(juce::AudioBuffer<float>& buffer);
+  size_t readFrame(juce::AudioBuffer<double>& buffer);
   bool seekToFrame(unsigned frameIndex);
 
-  // StreamData open(const std::string& filename);
-  // bool close();
-  // bool readFrame(juce::AudioBuffer<double>& buffer);
-
  private:
-  StreamData getDescriptorOBUs(
-      const std::unique_ptr<iamf_tools::api::IamfDecoderInterface>& decoder,
-      std::filesystem::path filePath);
+  StreamData getStreamData(std::unique_ptr<Decoder>& decoder,
+                           std::filesystem::path filePath);
   IAMFFileReader::StreamData parseOBUs(
-      const std::unique_ptr<iamf_tools::api::IamfDecoderInterface>& decoder,
+      std::unique_ptr<Decoder>& decoder,
       std::unique_ptr<std::ifstream>& fileStream);
+  bool prepareTemporalUnit(std::unique_ptr<Decoder>& decoder);
 
-  const StreamData kStreamData_;
   const std::filesystem::path kFilePath_;
   Settings settings_;
-  std::unique_ptr<iamf_tools::api::IamfDecoderInterface> iamfDecoder_;
+  StreamData streamData_;
+  std::unique_ptr<Decoder> iamfDecoder_;
   std::unique_ptr<std::ifstream> fileStream_;
 };

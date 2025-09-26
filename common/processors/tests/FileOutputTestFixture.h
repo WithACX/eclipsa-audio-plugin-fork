@@ -63,6 +63,20 @@ class FileOutputTests : public ::testing::Test {
   static constexpr int kSampleRate = 16e3;
   static constexpr int kSamplesPerFrame = 128;
 
+  // Create an IAMF file at a specified path with basic content
+  bool createBasicIAMFFile(const std::filesystem::path& path) {
+    const juce::Uuid kAE = addAudioElement(Speakers::kStereo);
+    const juce::Uuid kMP = addMixPresentation();
+    addAudioElementsToMix(kMP, {kAE});
+
+    setTestExportOpts({.codec = AudioCodec::LPCM, .sampleRate = kSampleRate});
+    auto FileExport = fileExportRepository.get();
+    FileExport.setExportFile(path.string());
+    fileExportRepository.update(FileExport);
+
+    bounceAudio(fio_proc, audioElementRepository);
+  }
+
  protected:
   FileOutputTests()
       : ex(fileExportRepository.get()),
@@ -166,7 +180,7 @@ class FileOutputTests : public ::testing::Test {
   struct ExportTestOpts {
     AudioCodec codec = AudioCodec::LPCM;
     std::optional<FileProfile> profile = std::nullopt;
-    int sampleRate = 48000;
+    int sampleRate = kSampleRate;
     bool exportVideo = false;
   };
 

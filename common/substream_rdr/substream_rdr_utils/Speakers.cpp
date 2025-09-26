@@ -14,6 +14,8 @@
 
 #include "Speakers.h"
 
+#include "iamf_tools_api_types.h"
+
 using namespace Speakers;
 
 AudioElementSpeakerLayout::AudioElementSpeakerLayout(
@@ -50,6 +52,43 @@ AudioElementSpeakerLayout::AudioElementSpeakerLayout(
     index_ = kHOA7;
   } else {
     index_ = kMono;
+  }
+}
+
+Speakers::AudioElementSpeakerLayout::AudioElementSpeakerLayout(
+    iamf_tools::api::OutputLayout layout)
+    : index_(kMono) {
+  switch (layout) {
+    case iamf_tools::api::OutputLayout::kItu2051_SoundSystemA_0_2_0:
+      index_ = kStereo;
+      break;
+    case iamf_tools::api::OutputLayout::kIAMF_SoundSystemExtension_2_3_0:
+      index_ = k3Point1Point2;
+      break;
+    case iamf_tools::api::OutputLayout::kItu2051_SoundSystemB_0_5_0:
+      index_ = k5Point1;
+      break;
+    case iamf_tools::api::OutputLayout::kItu2051_SoundSystemC_2_5_0:
+      index_ = k5Point1Point2;
+      break;
+    case iamf_tools::api::OutputLayout::kItu2051_SoundSystemD_4_5_0:
+      index_ = k5Point1Point4;
+      break;
+    case iamf_tools::api::OutputLayout::kItu2051_SoundSystemI_0_7_0:
+      index_ = k7Point1;
+      break;
+    case iamf_tools::api::OutputLayout::kIAMF_SoundSystemExtension_2_7_0:
+      index_ = k7Point1Point2;
+      break;
+    case iamf_tools::api::OutputLayout::kItu2051_SoundSystemJ_4_7_0:
+      index_ = k7Point1Point4;
+      break;
+    case iamf_tools::api::OutputLayout::kItu2051_SoundSystemH_9_10_3:
+      index_ = kExpl9Point1Point6;
+      break;
+    default:
+      index_ = kMono;
+      break;
   }
 }
 
@@ -594,7 +633,8 @@ bool AudioElementSpeakerLayout::isExpandedLayout() const {
   return (index_ >= firstExpandedLayout) && (index_ <= lastExpandedLayout);
 }
 
-AudioElementSpeakerLayout AudioElementSpeakerLayout::getExplBaseLayout() const {
+Speakers::AudioElementSpeakerLayout
+Speakers::AudioElementSpeakerLayout::getExplBaseLayout() const {
   if (!isExpandedLayout()) {
     return AudioElementSpeakerLayout(index_);
   }
