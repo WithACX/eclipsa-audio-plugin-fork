@@ -79,18 +79,63 @@ class FileOutputTests : public ::testing::Test {
 
   void createIAMFFile2AE2MP(const std::filesystem::path& path) {
     const Layout kLayout1 = Speakers::kStereo;
-    const Layout kLayout2 = Speakers::k5Point1Point4;
-    const juce::Uuid kAE1 = addAudioElement(kLayout1);
-    const juce::Uuid kAE2 = addAudioElement(kLayout2);
-    const juce::Uuid kMP1 = addMixPresentation();
-    const juce::Uuid kMP2 = addMixPresentation();
+    const Layout kLayout2 = Speakers::k5Point1;
+    const juce::Uuid kAE1 = addAudioElement(kLayout1, "440Hz Sine");
+    const juce::Uuid kAE2 = addAudioElement(kLayout2, "660Hz Sine");
+    const juce::Uuid kMP1 = addMixPresentation("Mix 440Hz");
+    const juce::Uuid kMP2 = addMixPresentation("Mix 660Hz");
     addAudioElementsToMix(kMP1, {kAE1});
     addAudioElementsToMix(kMP2, {kAE2});
 
-    setTestExportOpts(
-        {AudioCodec::LPCM, .profile = FileProfile::BASE_ENHANCED});
+    setTestExportOpts({.codec = AudioCodec::LPCM,
+                       .profile = FileProfile::BASE_ENHANCED,
+                       .sampleRate = kSampleRate});
 
-    bounceAudio(fio_proc, audioElementRepository);
+    auto fileExport = fileExportRepository.get();
+    fileExport.setExportFile(path.string());
+    fileExportRepository.update(fileExport);
+
+    // Prepare processor for rendering
+    fio_proc.prepareToPlay(kSampleRate, kSamplesPerFrame);
+    fio_proc.setNonRealtime(true);
+
+    // Configure for 2 seconds of audio
+    const int totalFrames = 2 * kSampleRate;
+    const int numBlocks = totalFrames / kSamplesPerFrame;
+
+    // Create combined buffer for both audio elements
+    const int totalChannels =
+        kLayout1.getNumChannels() + kLayout2.getNumChannels();
+    juce::AudioBuffer<float> combinedBuffer(totalChannels, kSamplesPerFrame);
+    juce::MidiBuffer midiBuffer;
+
+    // Process audio in blocks
+    for (int block = 0; block < numBlocks; ++block) {
+      // Clear the combined buffer
+      combinedBuffer.clear();
+
+      // Generate 440Hz sine wave for first element
+      auto sineWave440 =
+          generateSineWave(440.0f, kSampleRate, kSamplesPerFrame);
+      for (int channel = 0; channel < kLayout1.getNumChannels(); ++channel) {
+        combinedBuffer.copyFrom(channel, 0, sineWave440, 0, 0,
+                                kSamplesPerFrame);
+      }
+
+      // Generate 660Hz sine wave for second element
+      auto sineWave660 =
+          generateSineWave(660.0f, kSampleRate, kSamplesPerFrame);
+      for (int channel = 0; channel < kLayout2.getNumChannels(); ++channel) {
+        combinedBuffer.copyFrom(kLayout1.getNumChannels() + channel, 0,
+                                sineWave660, 0, 0, kSamplesPerFrame);
+      }
+
+      // Process the combined buffer
+      fio_proc.processBlock(combinedBuffer, midiBuffer);
+    }
+
+    // Clean up
+    fio_proc.setNonRealtime(false);
   }
 
  protected:

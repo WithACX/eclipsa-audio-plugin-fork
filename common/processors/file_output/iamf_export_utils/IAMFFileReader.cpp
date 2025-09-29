@@ -70,6 +70,7 @@ IAMFFileReader::StreamData IAMFFileReader::parseOBUs(
                     fileStream->gcount());
 
     if (decoder->IsDescriptorProcessingComplete()) {
+      streamData.valid = true;
       decoder->GetNumberOfOutputChannels(streamData.numChannels);
       decoder->GetSampleRate(streamData.sampleRate);
       decoder->GetFrameSize(streamData.frameSize);
@@ -78,8 +79,7 @@ IAMFFileReader::StreamData IAMFFileReader::parseOBUs(
       decoder->GetOutputMix(selectedMix);
       streamData.playbackLayout =
           Speakers::AudioElementSpeakerLayout(selectedMix.output_layout);
-      streamData.valid = true;
-      break;
+      return streamData;
     }
   }
 

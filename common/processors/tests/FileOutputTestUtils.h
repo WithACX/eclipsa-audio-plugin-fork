@@ -16,6 +16,7 @@
 
 #include <juce_audio_basics/juce_audio_basics.h>
 
+#include <filesystem>
 #include <fstream>
 
 #include "IAMF_decoder.h"
@@ -324,4 +325,38 @@ class MP4IAMFDemuxer {
     if (!file.read(reinterpret_cast<char*>(buffer.data()), size)) return {};
     return buffer;
   }
+};
+
+class WavFileWriter {
+ public:
+  WavFileWriter(const std::filesystem::path& filePath, int numChannels,
+                double sampleRate = 48000)
+      : numChannels_(numChannels) {
+    wavFormat_.reset(new juce::WavAudioFormat());
+    juce::File file(filePath.string());
+    std::unique_ptr<juce::FileOutputStream> outputStream(
+        file.createOutputStream());
+    writer_.reset(wavFormat_->createWriterFor(outputStream.get(), sampleRate,
+                                              numChannels_, 16, {}, 0));
+    (void)outputStream.release();
+  }
+
+  ~WavFileWriter() {
+    writer_.reset();
+    wavFormat_.reset();
+  }
+
+  bool write(const juce::AudioBuffer<float>& buffer, int numSamples) {
+    if (!writer_ || buffer.getNumChannels() != numChannels_) {
+      return false;
+    }
+    return writer_->writeFromAudioSampleBuffer(buffer, 0, numSamples);
+  }
+
+  bool isOpen() const { return writer_ != nullptr; }
+
+ private:
+  const int numChannels_;
+  std::unique_ptr<juce::WavAudioFormat> wavFormat_;
+  std::unique_ptr<juce::AudioFormatWriter> writer_;
 };
