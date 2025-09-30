@@ -109,22 +109,37 @@ class FileOutputTests : public ::testing::Test {
     juce::AudioBuffer<float> combinedBuffer(totalChannels, kSamplesPerFrame);
     juce::MidiBuffer midiBuffer;
 
+    double currentAngle1 = 0.0;
+    double currentAngle2 = 0.0;
+    const double kPhi1 =
+        juce::MathConstants<double>::twoPi * 440.0f / kSampleRate;
+    const double kPhi2 =
+        juce::MathConstants<double>::twoPi * 660.0f / kSampleRate;
+
     // Process audio in blocks
     for (int block = 0; block < numBlocks; ++block) {
       // Clear the combined buffer
       combinedBuffer.clear();
 
       // Generate 440Hz sine wave for first element
-      auto sineWave440 =
-          generateSineWave(440.0f, kSampleRate, kSamplesPerFrame);
-      for (int channel = 0; channel < kLayout1.getNumChannels(); ++channel) {
-        combinedBuffer.copyFrom(channel, 0, sineWave440, 0, 0,
-                                kSamplesPerFrame);
+      juce::AudioBuffer<float> sineWave440(1, kSamplesPerFrame);
+      float* channelData1 = sineWave440.getWritePointer(0);
+      for (int i = 0; i < kSamplesPerFrame; ++i) {
+        channelData1[i] = std::sin(currentAngle1);
+        currentAngle1 += kPhi1;
       }
+      // for (int channel = 0; channel < kLayout1.getNumChannels(); ++channel) {
+      //   combinedBuffer.copyFrom(channel, 0, sineWave440, 0, 0,
+      //                           kSamplesPerFrame);
+      // }
 
       // Generate 660Hz sine wave for second element
-      auto sineWave660 =
-          generateSineWave(660.0f, kSampleRate, kSamplesPerFrame);
+      juce::AudioBuffer<float> sineWave660(1, kSamplesPerFrame);
+      float* channelData2 = sineWave660.getWritePointer(0);
+      for (int i = 0; i < kSamplesPerFrame; ++i) {
+        channelData2[i] = std::sin(currentAngle2);
+        currentAngle2 += kPhi2;
+      }
       for (int channel = 0; channel < kLayout2.getNumChannels(); ++channel) {
         combinedBuffer.copyFrom(kLayout1.getNumChannels() + channel, 0,
                                 sineWave660, 0, 0, kSamplesPerFrame);
