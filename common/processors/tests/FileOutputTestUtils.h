@@ -333,6 +333,7 @@ class WavFileWriter {
                 double sampleRate = 48000)
       : numChannels_(numChannels) {
     wavFormat_.reset(new juce::WavAudioFormat());
+    std::filesystem::remove(filePath);
     juce::File file(filePath.string());
     std::unique_ptr<juce::FileOutputStream> outputStream(
         file.createOutputStream());
@@ -341,10 +342,7 @@ class WavFileWriter {
     (void)outputStream.release();
   }
 
-  ~WavFileWriter() {
-    writer_.reset();
-    wavFormat_.reset();
-  }
+  ~WavFileWriter() { writer_->flush(); }
 
   bool write(const juce::AudioBuffer<float>& buffer, int numSamples) {
     if (!writer_ || buffer.getNumChannels() != numChannels_) {

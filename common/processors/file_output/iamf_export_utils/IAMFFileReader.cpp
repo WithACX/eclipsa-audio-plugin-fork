@@ -154,7 +154,7 @@ size_t IAMFFileReader::readFrame(juce::AudioBuffer<float>& buffer) {
     const size_t kSampsPerCh = kSampsTotal / streamData_.numChannels;
 
     if (kSampsTotal / streamData_.numChannels != streamData_.frameSize) {
-      // Do we do anything if we don't have a complete frame?
+      // Debug: Do we do anything if we don't have a complete frame?
     }
 
     for (int i = 0; i < streamData_.numChannels; ++i) {

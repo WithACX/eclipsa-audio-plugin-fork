@@ -81,7 +81,8 @@ class FileOutputTests : public ::testing::Test {
     const Layout kLayout1 = Speakers::kStereo;
     const Layout kLayout2 = Speakers::k5Point1;
     const juce::Uuid kAE1 = addAudioElement(kLayout1, "440Hz Sine");
-    const juce::Uuid kAE2 = addAudioElement(kLayout2, "660Hz Sine");
+    const juce::Uuid kAE2 =
+        addAudioElement(kLayout2, "660Hz Sine", kLayout1.getNumChannels());
     const juce::Uuid kMP1 = addMixPresentation("Mix 440Hz");
     const juce::Uuid kMP2 = addMixPresentation("Mix 660Hz");
     addAudioElementsToMix(kMP1, {kAE1});
@@ -125,19 +126,19 @@ class FileOutputTests : public ::testing::Test {
       juce::AudioBuffer<float> sineWave440(1, kSamplesPerFrame);
       float* channelData1 = sineWave440.getWritePointer(0);
       for (int i = 0; i < kSamplesPerFrame; ++i) {
-        channelData1[i] = std::sin(currentAngle1);
+        channelData1[i] = 0.5 * std::sin(currentAngle1);
         currentAngle1 += kPhi1;
       }
-      // for (int channel = 0; channel < kLayout1.getNumChannels(); ++channel) {
-      //   combinedBuffer.copyFrom(channel, 0, sineWave440, 0, 0,
-      //                           kSamplesPerFrame);
-      // }
+      for (int channel = 0; channel < kLayout1.getNumChannels(); ++channel) {
+        combinedBuffer.copyFrom(channel, 0, sineWave440, 0, 0,
+                                kSamplesPerFrame);
+      }
 
       // Generate 660Hz sine wave for second element
       juce::AudioBuffer<float> sineWave660(1, kSamplesPerFrame);
       float* channelData2 = sineWave660.getWritePointer(0);
       for (int i = 0; i < kSamplesPerFrame; ++i) {
-        channelData2[i] = std::sin(currentAngle2);
+        channelData2[i] = 0.5 * std::sin(currentAngle2);
         currentAngle2 += kPhi2;
       }
       for (int channel = 0; channel < kLayout2.getNumChannels(); ++channel) {
