@@ -110,13 +110,6 @@ class FileOutputTests : public ::testing::Test {
     juce::AudioBuffer<float> combinedBuffer(totalChannels, kSamplesPerFrame);
     juce::MidiBuffer midiBuffer;
 
-    double currentAngle1 = 0.0;
-    double currentAngle2 = 0.0;
-    const double kPhi1 =
-        juce::MathConstants<double>::twoPi * 440.0f / kSampleRate;
-    const double kPhi2 =
-        juce::MathConstants<double>::twoPi * 660.0f / kSampleRate;
-
     // Process audio in blocks
     for (int block = 0; block < numBlocks; ++block) {
       // Clear the combined buffer
@@ -126,8 +119,8 @@ class FileOutputTests : public ::testing::Test {
       juce::AudioBuffer<float> sineWave440(1, kSamplesPerFrame);
       float* channelData1 = sineWave440.getWritePointer(0);
       for (int i = 0; i < kSamplesPerFrame; ++i) {
-        channelData1[i] = 0.5 * std::sin(currentAngle1);
-        currentAngle1 += kPhi1;
+        channelData1[i] =
+            sampleSine(440.0f, block * kSamplesPerFrame + i, kSampleRate);
       }
       for (int channel = 0; channel < kLayout1.getNumChannels(); ++channel) {
         combinedBuffer.copyFrom(channel, 0, sineWave440, 0, 0,
@@ -138,8 +131,8 @@ class FileOutputTests : public ::testing::Test {
       juce::AudioBuffer<float> sineWave660(1, kSamplesPerFrame);
       float* channelData2 = sineWave660.getWritePointer(0);
       for (int i = 0; i < kSamplesPerFrame; ++i) {
-        channelData2[i] = 0.5 * std::sin(currentAngle2);
-        currentAngle2 += kPhi2;
+        channelData2[i] =
+            sampleSine(660.0f, block * kSamplesPerFrame + i, kSampleRate);
       }
       for (int channel = 0; channel < kLayout2.getNumChannels(); ++channel) {
         combinedBuffer.copyFrom(kLayout1.getNumChannels() + channel, 0,

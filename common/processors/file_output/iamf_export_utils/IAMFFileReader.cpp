@@ -11,15 +11,8 @@
 #include "logger/logger.h"
 #include "substream_rdr/substream_rdr_utils/Speakers.h"
 
-const IAMFFileReader::Settings IAMFFileReader::kDefaultReaderSettings = {
-    .requested_mix =
-        {.output_layout =
-             iamf_tools::api::OutputLayout::kItu2051_SoundSystemA_0_2_0},
-    .requested_profile_versions =
-        {iamf_tools::api::ProfileVersion::kIamfBaseEnhancedProfile},
-    .requested_output_sample_type =
-        iamf_tools::api::OutputSampleType::kInt32LittleEndian,
-};
+IAMFFileReader::IAMFFileReader(const std::filesystem::path& iamfFilePath)
+    : IAMFFileReader(iamfFilePath, kDefaultReaderSettings) {}
 
 IAMFFileReader::IAMFFileReader(const std::filesystem::path& iamfFilePath,
                                const Settings& settings)
@@ -39,6 +32,13 @@ IAMFFileReader::IAMFFileReader(const std::filesystem::path& iamfFilePath,
   if (!streamData_.valid) {
     LOG_ERROR(0, "IAMFFileReader: Failed to parse IAMF file");
     throw std::runtime_error("IAMFFileReader: Failed to parse IAMF file");
+  }
+}
+
+IAMFFileReader::~IAMFFileReader() {
+  // Close iamf filestream for next reader
+  if (fileStream_ && fileStream_->is_open()) {
+    fileStream_->close();
   }
 }
 

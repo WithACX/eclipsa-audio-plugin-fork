@@ -45,6 +45,11 @@ static juce::AudioBuffer<float> generateSineWave(float frequency,
   return buffer;
 }
 
+static float sampleSine(const unsigned freq, const float n,
+                        const unsigned sampleRate) {
+  return 0.2f * std::sin(2 * M_PI * freq * n / (float)sampleRate);
+}
+
 static unsigned totalAudioChannels(
     AudioElementRepository& audioElementRepository) {
   unsigned totalChannels = 0;

@@ -13,7 +13,6 @@ class IAMFFileReader {
   using Settings = iamf_tools::api::IamfDecoderFactory::Settings;
   using Decoder = iamf_tools::api::IamfDecoderInterface;
 
-  // Data about the stream to be read from the IAMF file
   struct StreamData {
     int numChannels = 0;
     unsigned sampleRate = 0;
@@ -22,11 +21,20 @@ class IAMFFileReader {
     bool valid = false;
   };
 
-  static const Settings kDefaultReaderSettings;
+  static const inline IAMFFileReader::Settings kDefaultReaderSettings = {
+      .requested_mix =
+          {.output_layout =
+               iamf_tools::api::OutputLayout::kItu2051_SoundSystemA_0_2_0},
+      .requested_profile_versions =
+          {iamf_tools::api::ProfileVersion::kIamfBaseEnhancedProfile},
+      .requested_output_sample_type =
+          iamf_tools::api::OutputSampleType::kInt32LittleEndian,
+  };
 
+  IAMFFileReader(const std::filesystem::path& iamfFilePath);
   IAMFFileReader(const std::filesystem::path& iamfFilePath,
-                 const Settings& settings = kDefaultReaderSettings);
-  ~IAMFFileReader() = default;
+                 const Settings& settings);
+  ~IAMFFileReader();
 
   StreamData getStreamData() const { return streamData_; }
   size_t readFrame(juce::AudioBuffer<float>& buffer);
