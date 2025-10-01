@@ -41,7 +41,7 @@ TEST_F(IAMFFileReaderTest, open_iamf_different_playback) {
 
   const IAMFFileReader::StreamData kSData = reader.getStreamData();
   EXPECT_TRUE(kSData.valid);
-  EXPECT_EQ(kSData.numChannels, Speakers::kStereo.getNumChannels());
+  EXPECT_EQ(kSData.numChannels, Speakers::k5Point1.getNumChannels());
   EXPECT_EQ(kSData.sampleRate, 48e3);
   EXPECT_EQ(kSData.frameSize, kSamplesPerFrame);
 }

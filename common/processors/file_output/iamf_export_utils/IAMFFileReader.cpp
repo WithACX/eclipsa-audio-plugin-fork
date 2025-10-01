@@ -11,54 +11,10 @@
 #include "logger/logger.h"
 #include "substream_rdr/substream_rdr_utils/Speakers.h"
 
-IAMFFileReader::IAMFFileReader(const std::filesystem::path& iamfFilePath)
-    : IAMFFileReader(iamfFilePath, kDefaultReaderSettings) {}
-
-IAMFFileReader::IAMFFileReader(const std::filesystem::path& iamfFilePath,
-                               const Settings& settings)
-    : kFilePath_(iamfFilePath), settings_(settings) {
-  if (!std::filesystem::exists(iamfFilePath)) {
-    throw std::runtime_error("IAMFFileReader: IAMF file does not exist");
-  }
-
-  // Create an initial decoder to parse Descriptor OBUs
-  iamfDecoder_ = iamf_tools::api::IamfDecoderFactory::Create(settings_);
-  if (!iamfDecoder_) {
-    LOG_ERROR(0, "IAMFFileReader: Failed to create IAMF decoder");
-    throw std::runtime_error("IAMFFileReader: Failed to create IAMF decoder");
-  }
-
-  streamData_ = getStreamData(iamfDecoder_, iamfFilePath);
-  if (!streamData_.valid) {
-    LOG_ERROR(0, "IAMFFileReader: Failed to parse IAMF file");
-    throw std::runtime_error("IAMFFileReader: Failed to parse IAMF file");
-  }
-}
-
-IAMFFileReader::~IAMFFileReader() {
-  // Close iamf filestream for next reader
-  if (fileStream_ && fileStream_->is_open()) {
-    fileStream_->close();
-  }
-}
-
-IAMFFileReader::StreamData IAMFFileReader::getStreamData(
-    std::unique_ptr<Decoder>& decoder, std::filesystem::path filePath) {
-  IAMFFileReader::StreamData streamData{.valid = false};
-
-  fileStream_ = std::make_unique<std::ifstream>(filePath, std::ios::binary);
-
-  if (!fileStream_->is_open()) {
-    return streamData;
-  }
-
-  return parseOBUs(decoder, fileStream_);
-}
-
 // Parse descriptors to determine audio stream params for the selected mix
 // presentation
-IAMFFileReader::StreamData IAMFFileReader::parseOBUs(
-    std::unique_ptr<Decoder>& decoder,
+static IAMFFileReader::StreamData parseOBUs(
+    std::unique_ptr<IAMFFileReader::Decoder>& decoder,
     std::unique_ptr<std::ifstream>& fileStream) {
   const size_t kBufferSize = 4096;
   IAMFFileReader::StreamData streamData;
@@ -84,6 +40,53 @@ IAMFFileReader::StreamData IAMFFileReader::parseOBUs(
   }
 
   return streamData;
+}
+
+static IAMFFileReader::StreamData parseStreamData(
+    std::unique_ptr<IAMFFileReader::Decoder>& decoder,
+    std::unique_ptr<std::ifstream>& fileStream) {
+  const IAMFFileReader::StreamData kStreamData = parseOBUs(decoder, fileStream);
+
+  return kStreamData;
+}
+
+IAMFFileReader::IAMFFileReader(const std::filesystem::path& iamfFilePath)
+    : IAMFFileReader(iamfFilePath, kDefaultReaderSettings) {}
+
+IAMFFileReader::IAMFFileReader(const std::filesystem::path& iamfFilePath,
+                               const Settings& settings)
+    : kFilePath_(iamfFilePath), settings_(settings) {
+  if (!std::filesystem::exists(iamfFilePath)) {
+    throw std::runtime_error("IAMFFileReader: IAMF file does not exist");
+  }
+
+  // Create an initial decoder to parse Descriptor OBUs
+  iamfDecoder_ = iamf_tools::api::IamfDecoderFactory::Create(settings_);
+  if (!iamfDecoder_) {
+    LOG_ERROR(0, "IAMFFileReader: Failed to create IAMF decoder");
+    throw std::runtime_error("IAMFFileReader: Failed to create IAMF decoder");
+  }
+
+  fileStream_ = std::make_unique<std::ifstream>(kFilePath_, std::ios::binary);
+  if (!fileStream_->is_open()) {
+    LOG_ERROR(0, "IAMFFileReader: Failed to open IAMF file");
+    throw std::runtime_error("IAMFFileReader: Failed to create IAMF decoder");
+  }
+
+  streamData_ = parseStreamData(iamfDecoder_, fileStream_);
+  if (!streamData_.valid) {
+    LOG_ERROR(0, "IAMFFileReader: Failed to parse IAMF file");
+    throw std::runtime_error("IAMFFileReader: Failed to parse IAMF file");
+  }
+
+  // Build index of frame positions for seeking
+  // frameIdxs_ = buildFrameIndices(fileStream_, iamfDecoder_);
+}
+
+IAMFFileReader::~IAMFFileReader() {
+  if (fileStream_ && fileStream_->is_open()) {
+    fileStream_->close();
+  }
 }
 
 bool IAMFFileReader::prepareTemporalUnit(std::unique_ptr<Decoder>& decoder) {
@@ -154,7 +157,7 @@ size_t IAMFFileReader::readFrame(juce::AudioBuffer<float>& buffer) {
     const size_t kSampsPerCh = kSampsTotal / streamData_.numChannels;
 
     if (kSampsTotal / streamData_.numChannels != streamData_.frameSize) {
-      // Debug: Do we do anything if we don't have a complete frame?
+      LOG_INFO(0, "IAMFFileReader: Incomplete frame");
     }
 
     for (int i = 0; i < streamData_.numChannels; ++i) {
@@ -164,4 +167,9 @@ size_t IAMFFileReader::readFrame(juce::AudioBuffer<float>& buffer) {
     samplesRead = kSampsPerCh;
   }
   return samplesRead;
+}
+
+bool IAMFFileReader::seekFrame(const size_t frameIdx) {
+  // We expect that the index was built during the initial parsing of the file
+  // on construction.
 }

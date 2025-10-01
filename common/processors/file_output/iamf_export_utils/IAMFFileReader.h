@@ -2,6 +2,7 @@
 #include <juce_audio_basics/juce_audio_basics.h>
 
 #include <filesystem>
+#include <iosfwd>
 #include <memory>
 
 #include "iamf/include/iamf_tools/iamf_decoder_factory.h"
@@ -15,8 +16,7 @@ class IAMFFileReader {
 
   struct StreamData {
     int numChannels = 0;
-    unsigned sampleRate = 0;
-    unsigned frameSize = 0;
+    unsigned sampleRate = 0, frameSize = 0;
     Speakers::AudioElementSpeakerLayout playbackLayout = Speakers::kUnknown;
     bool valid = false;
   };
@@ -39,14 +39,14 @@ class IAMFFileReader {
   StreamData getStreamData() const { return streamData_; }
   size_t readFrame(juce::AudioBuffer<float>& buffer);
   size_t readFrame(juce::AudioBuffer<double>& buffer);
-  bool seekToFrame(unsigned frameIndex);
+  bool seekFrame(const size_t frameIdx);
 
  private:
-  StreamData getStreamData(std::unique_ptr<Decoder>& decoder,
-                           std::filesystem::path filePath);
-  IAMFFileReader::StreamData parseOBUs(
-      std::unique_ptr<Decoder>& decoder,
-      std::unique_ptr<std::ifstream>& fileStream);
+  struct IdxEntry {
+    size_t frameIdx;
+    std::streampos filePos;
+  };
+
   bool prepareTemporalUnit(std::unique_ptr<Decoder>& decoder);
 
   const std::filesystem::path kFilePath_;
@@ -54,4 +54,5 @@ class IAMFFileReader {
   StreamData streamData_;
   std::unique_ptr<Decoder> iamfDecoder_;
   std::unique_ptr<std::ifstream> fileStream_;
+  std::vector<IdxEntry> frameIdxs_;
 };
