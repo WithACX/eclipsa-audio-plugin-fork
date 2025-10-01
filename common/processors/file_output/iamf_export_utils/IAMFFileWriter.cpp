@@ -153,10 +153,13 @@ bool IAMFFileWriter::open(const std::string& filename) {
 
   // Calculate total channels needed and initialize double buffer for frame
   // writing
+  // Debug Note: How are we determining the number of channels we need here? My
+  // assumption is that we want to count the channels for all audio elements?
+  // The code that was here before was bizarre - with totalChannels being the
+  // size of the largest audio element?
   int totalChannels = 0;
   for (const auto& audioElement : audioElementInformation_) {
-    totalChannels = std::max(
-        totalChannels, audioElement.firstChannel + audioElement.numChannels);
+    totalChannels += audioElement.numChannels;
   }
   doubleBuffer_.setSize(totalChannels, samplesPerFrame_, false, false, true);
 
