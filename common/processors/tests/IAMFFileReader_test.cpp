@@ -215,6 +215,7 @@ TEST_F(IAMFFileReaderTest, seek_valid_backwards) {
   EXPECT_EQ(kSData.numChannels, 2);
   EXPECT_EQ(kSData.sampleRate, 16e3);
   EXPECT_EQ(kSData.frameSize, kSamplesPerFrame);
+
   size_t totalFramesRead = 0, samplesRead = 0;
   juce::AudioBuffer<float> buffer(kSData.numChannels, kSData.frameSize);
   // Read first 10 frames
@@ -241,23 +242,23 @@ TEST_F(IAMFFileReaderTest, seek_valid_backwards) {
   }
 }
 
-// // Seek to an invalid frame past the end of the file
-// TEST_F(IAMFFileReaderTest, seek_invalid) {
-//   createBasicIAMFFile(kReferenceFilePath);
-//   IAMFFileReader reader(kReferenceFilePath);
-//   const IAMFFileReader::StreamData kSData = reader.getStreamData();
-//   EXPECT_TRUE(kSData.valid);
-//   EXPECT_EQ(kSData.numChannels, 2);
-//   EXPECT_EQ(kSData.sampleRate, 48e3);
-//   EXPECT_EQ(kSData.frameSize, kSamplesPerFrame);
-//   size_t totalFramesRead = 0, samplesRead = 0;
-//   juce::AudioBuffer<float> buffer(kSData.numChannels, kSData.frameSize);
-//   // Read first 10 frames
-//   for (int i = 0; i < 10; ++i) {
-//     samplesRead = reader.readFrame(buffer);
-//     ASSERT_EQ(samplesRead, (size_t)kSData.frameSize);
-//     ++totalFramesRead;
-//   }
-//   // Seek to invalid frame index
-//   ASSERT_FALSE(reader.seekFrame(1000));
-// }
+// Seek to an invalid frame past the end of the file
+TEST_F(IAMFFileReaderTest, seek_invalid) {
+  createIAMFFile2AE2MP(kReferenceFilePath);
+  IAMFFileReader reader(kReferenceFilePath);
+  const IAMFFileReader::StreamData kSData = reader.getStreamData();
+  EXPECT_TRUE(kSData.valid);
+  EXPECT_EQ(kSData.numChannels, 2);
+  EXPECT_EQ(kSData.sampleRate, 16e3);
+  EXPECT_EQ(kSData.frameSize, kSamplesPerFrame);
+  size_t totalFramesRead = 0, samplesRead = 0;
+  juce::AudioBuffer<float> buffer(kSData.numChannels, kSData.frameSize);
+  // Read first 10 frames
+  for (int i = 0; i < 10; ++i) {
+    samplesRead = reader.readFrame(buffer);
+    ASSERT_EQ(samplesRead, (size_t)kSData.frameSize);
+    ++totalFramesRead;
+  }
+  // Seek to invalid frame index
+  ASSERT_FALSE(reader.seekFrame(1000));
+}
