@@ -16,6 +16,10 @@ class IAMFFileReaderTest : public FileOutputTests {};
 const std::filesystem::path kReferenceFilePath =
     std::filesystem::current_path() / "test_reader.iamf";
 
+// DEBUG:
+const std::filesystem::path kDebugOutPath =
+    std::filesystem::current_path().parent_path() / "test_reader.wav";
+
 TEST_F(IAMFFileReaderTest, open_iamf) {
   createBasicIAMFFile(kReferenceFilePath);
   IAMFFileReader reader(kReferenceFilePath);
@@ -170,3 +174,91 @@ TEST_F(IAMFFileReaderTest, swap_reset_mix) {
   EXPECT_EQ(kSData2.sampleRate, 16e3);
   EXPECT_EQ(kSData2.frameSize, kSamplesPerFrame);
 }
+
+// Seek to a valid frame in the file forwards from the current frame
+TEST_F(IAMFFileReaderTest, seek_valid) {
+  createBasicIAMFFile(kReferenceFilePath);
+  IAMFFileReader reader(kReferenceFilePath);
+
+  const IAMFFileReader::StreamData kSData = reader.getStreamData();
+  EXPECT_TRUE(kSData.valid);
+  EXPECT_EQ(kSData.numChannels, 2);
+  EXPECT_EQ(kSData.sampleRate, 48e3);
+  EXPECT_EQ(kSData.frameSize, kSamplesPerFrame);
+
+  size_t samplesRead = 0;
+  juce::AudioBuffer<float> buffer(kSData.numChannels, kSData.frameSize);
+  WavFileWriter debugWriter(kDebugOutPath, kSData.sampleRate,
+                            kSData.numChannels);
+
+  const unsigned kFramesToSeek = 4;
+  EXPECT_TRUE(reader.seekFrame(kFramesToSeek));
+  samplesRead = reader.readFrame(buffer);
+  EXPECT_EQ(samplesRead, (size_t)kSData.frameSize);
+  debugWriter.write(buffer, samplesRead);
+
+  // Decoded samples should match the written 440Hz sine wave
+  for (int i = 0; i < kSData.numChannels; ++i) {
+    for (int j = 0; j < samplesRead; ++j) {
+      ASSERT_NEAR(buffer.getSample(i, j),
+                  sampleSine(440.f, kFramesToSeek * kSData.frameSize + j,
+                             kSData.sampleRate),
+                  .0001f);
+    }
+  }
+}
+
+// // Seek to a valid frame in the file backwards from the current frame
+// TEST_F(IAMFFileReaderTest, seek_valid_backwards) {
+//   createBasicIAMFFile(kReferenceFilePath);
+//   IAMFFileReader reader(kReferenceFilePath);
+//   const IAMFFileReader::StreamData kSData = reader.getStreamData();
+//   EXPECT_TRUE(kSData.valid);
+//   EXPECT_EQ(kSData.numChannels, 2);
+//   EXPECT_EQ(kSData.sampleRate, 48e3);
+//   EXPECT_EQ(kSData.frameSize, kSamplesPerFrame);
+//   size_t totalFramesRead = 0, samplesRead = 0;
+//   juce::AudioBuffer<float> buffer(kSData.numChannels, kSData.frameSize);
+//   // Read first 10 frames
+//   for (int i = 0; i < 10; ++i) {
+//     samplesRead = reader.readFrame(buffer);
+//     ASSERT_EQ(samplesRead, (size_t)kSData.frameSize);
+//     ++totalFramesRead;
+//   }
+//   // Seek back to frame 5
+//   ASSERT_TRUE(reader.seekFrame(5));
+//   // Read frame 5
+//   samplesRead = reader.readFrame(buffer);
+//   ASSERT_EQ(samplesRead, (size_t)kSData.frameSize);
+//   ++totalFramesRead;
+//   // Decoded samples should match the written 440Hz sine wave
+//   for (int i = 0; i < kSData.numChannels; ++i) {
+//     for (int j = 0; j < samplesRead; ++j) {
+//       ASSERT_NEAR(
+//           buffer.getSample(i, j),
+//           sampleSine(440.f, 5 * kSData.frameSize + j, kSData.sampleRate),
+//           .0001f);
+//     }
+//   }
+// }
+
+// // Seek to an invalid frame past the end of the file
+// TEST_F(IAMFFileReaderTest, seek_invalid) {
+//   createBasicIAMFFile(kReferenceFilePath);
+//   IAMFFileReader reader(kReferenceFilePath);
+//   const IAMFFileReader::StreamData kSData = reader.getStreamData();
+//   EXPECT_TRUE(kSData.valid);
+//   EXPECT_EQ(kSData.numChannels, 2);
+//   EXPECT_EQ(kSData.sampleRate, 48e3);
+//   EXPECT_EQ(kSData.frameSize, kSamplesPerFrame);
+//   size_t totalFramesRead = 0, samplesRead = 0;
+//   juce::AudioBuffer<float> buffer(kSData.numChannels, kSData.frameSize);
+//   // Read first 10 frames
+//   for (int i = 0; i < 10; ++i) {
+//     samplesRead = reader.readFrame(buffer);
+//     ASSERT_EQ(samplesRead, (size_t)kSData.frameSize);
+//     ++totalFramesRead;
+//   }
+//   // Seek to invalid frame index
+//   ASSERT_FALSE(reader.seekFrame(1000));
+// }

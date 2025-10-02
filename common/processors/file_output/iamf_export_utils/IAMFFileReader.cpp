@@ -79,8 +79,8 @@ IAMFFileReader::IAMFFileReader(const std::filesystem::path& iamfFilePath,
     throw std::runtime_error("IAMFFileReader: Failed to parse IAMF file");
   }
 
-  // Build index of frame positions for seeking
-  // frameIdxs_ = buildFrameIndices(fileStream_, iamfDecoder_);
+  // Build index of frame positions for future file seeking
+  frameIdxs_ = buildFrameIndices(iamfDecoder_, fileStream_);
 }
 
 IAMFFileReader::~IAMFFileReader() {
@@ -131,16 +131,21 @@ void convertAndCopyChannelMajor(const int32_t* input,
 }
 
 size_t IAMFFileReader::readFrame(juce::AudioBuffer<float>& buffer) {
-  jassert(buffer.getNumChannels() == streamData_.numChannels);
-  jassert(buffer.getNumSamples() == streamData_.frameSize);
-  if (!streamData_.valid || !iamfDecoder_) {
+  if (buffer.getNumChannels() != streamData_.numChannels ||
+      buffer.getNumSamples() != streamData_.frameSize) {
+    LOG_ERROR(0, "IAMFFileReader: Buffer size does not match stream data");
     return 0;
   }
 
+  return parseFrame(&buffer);
+}
+
+size_t IAMFFileReader::parseFrame(juce::AudioBuffer<float>* buffer) {
   if (!prepareTemporalUnit(iamfDecoder_)) {
     return 0;
   }
 
+  currentFrameIdx_++;
   const size_t kPCMSampleBufferSize =
       streamData_.frameSize * streamData_.numChannels * sizeof(int32_t);
   std::unique_ptr<char[]> sampleBuffer = std::make_unique<char[]>(
@@ -155,21 +160,102 @@ size_t IAMFFileReader::readFrame(juce::AudioBuffer<float>& buffer) {
     // Samples are interleaved 32-bit ints to be parsed out
     const size_t kSampsTotal = bytesRead / sizeof(int32_t);
     const size_t kSampsPerCh = kSampsTotal / streamData_.numChannels;
-
     if (kSampsTotal / streamData_.numChannels != streamData_.frameSize) {
       LOG_INFO(0, "IAMFFileReader: Incomplete frame");
     }
 
-    for (int i = 0; i < streamData_.numChannels; ++i) {
-      convertAndCopyChannelMajor(reinterpret_cast<int32_t*>(sampleBuffer.get()),
-                                 buffer, kSampsPerCh, streamData_.numChannels);
+    if (buffer) {
+      for (int i = 0; i < streamData_.numChannels; ++i) {
+        convertAndCopyChannelMajor(
+            reinterpret_cast<int32_t*>(sampleBuffer.get()), *buffer,
+            kSampsPerCh, streamData_.numChannels);
+      }
     }
     samplesRead = kSampsPerCh;
   }
   return samplesRead;
 }
 
+std::vector<IAMFFileReader::IdxEntry> IAMFFileReader::buildFrameIndices(
+    std::unique_ptr<Decoder>& decoder,
+    std::unique_ptr<std::ifstream>& fileStream) {
+  // To be called after parsing OBUs.
+  // Populate frameIdxs_ with positions of each frame in the file.
+  // Iterate through temporal units, recording the file position of each frame.
+  // Reset file position and reparse OBUs to prepare for actual reading as
+  // cleanup.
+  std::vector<IdxEntry> frameIdxs;
+  size_t frameCount = 0;
+  std::streampos pos = fileStream->tellg();  // Get initial position
+  frameIdxs.push_back({pos});                // Record position of first frame
+  while (parseFrame()) {
+    pos = fileStream->tellg();   // Get position before next frame
+    frameIdxs.push_back({pos});  // Record position for next frame
+    frameCount++;
+  }
+  streamData_.durationSecs =
+      frameCount / (streamData_.sampleRate / streamData_.frameSize);
+
+  // Reset file position and reparse OBUs to prepare for actual reading
+  // The decoder must be reconstructed after resetting the file position
+  fileStream->clear();  // Clear EOF flag
+  fileStream->seekg(0, std::ios::beg);
+  decoder = iamf_tools::api::IamfDecoderFactory::Create(settings_);
+  if (!decoder) {
+    LOG_ERROR(0,
+              "IAMFFileReader: Failed to recreate IAMF decoder after indexing");
+    throw std::runtime_error(
+        "IAMFFileReader: Failed to recreate IAMF decoder after indexing");
+  }
+  parseStreamData(decoder, fileStream);
+  return frameIdxs;
+}
+
 bool IAMFFileReader::seekFrame(const size_t frameIdx) {
-  // We expect that the index was built during the initial parsing of the file
-  // on construction.
+  if (frameIdx >= frameIdxs_.size()) {
+    LOG_WARNING(0, "IAMFFileReader: Frame index out of range");
+    return false;
+  }
+
+  // If seeking forward, just parse frames until we get there
+  if (frameIdx > currentFrameIdx_) {
+    while (currentFrameIdx_ < frameIdx) {
+      if (parseFrame() == 0) {
+        return false;  // Hit EOF
+      }
+    }
+    return true;
+  }
+
+  // If seeking backward, reset decoder and file position, then advance
+  if (frameIdx < currentFrameIdx_) {
+    // Reset file position
+    fileStream_->clear();
+    fileStream_->seekg(0, std::ios::beg);
+
+    // Recreate decoder
+    iamfDecoder_ = iamf_tools::api::IamfDecoderFactory::Create(settings_);
+    if (!iamfDecoder_) {
+      LOG_ERROR(0, "IAMFFileReader: Failed to recreate decoder during seek");
+      return false;
+    }
+
+    // Reparse stream data
+    streamData_ = parseStreamData(iamfDecoder_, fileStream_);
+    if (!streamData_.valid) {
+      LOG_ERROR(0, "IAMFFileReader: Failed to reparse stream data during seek");
+      return false;
+    }
+
+    currentFrameIdx_ = 0;
+
+    // Now advance to desired frame
+    while (currentFrameIdx_ < frameIdx) {
+      if (parseFrame() == 0) {
+        return false;  // Hit EOF
+      }
+    }
+  }
+
+  return true;
 }

@@ -17,6 +17,7 @@ class IAMFFileReader {
   struct StreamData {
     int numChannels = 0;
     unsigned sampleRate = 0, frameSize = 0;
+    size_t durationSecs = 0;
     Speakers::AudioElementSpeakerLayout playbackLayout = Speakers::kUnknown;
     bool valid = false;
   };
@@ -43,11 +44,16 @@ class IAMFFileReader {
 
  private:
   struct IdxEntry {
-    size_t frameIdx;
     std::streampos filePos;
   };
 
   bool prepareTemporalUnit(std::unique_ptr<Decoder>& decoder);
+  size_t parseFrame(juce::AudioBuffer<float>* buffer = nullptr);
+  std::vector<IdxEntry> buildFrameIndices(
+      std::unique_ptr<Decoder>& decoder,
+      std::unique_ptr<std::ifstream>& fileStream);
+
+  size_t currentFrameIdx_ = 0;
 
   const std::filesystem::path kFilePath_;
   Settings settings_;

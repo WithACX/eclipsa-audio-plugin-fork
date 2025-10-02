@@ -133,9 +133,6 @@ bool IAMFFileWriter::open(const std::string& filename) {
   populateMixPresentationMetadataFromRepository(
       mixPresentationRepository_, *userMetadata_, audioElementIDMap_);
 
-  // Debug:
-  std::cout << "User Metadata:\n" << userMetadata_->DebugString() << std::endl;
-
   // Create an encoder instance
   auto localIamfEncoder =
       iamf_tools::api::IamfEncoderFactory::CreateFileGeneratingIamfEncoder(
