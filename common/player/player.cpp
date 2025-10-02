@@ -14,3 +14,4 @@
 #include "player.h"
 
 #include "src/transport/IAMFTransport.cpp"
+#include "src/transport/IAMFTransport2.cpp"

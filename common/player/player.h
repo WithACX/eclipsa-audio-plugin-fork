@@ -36,3 +36,4 @@ END_JUCE_MODULE_DECLARATION
 #include "src/deserialization/PlaybackFileFactory.h"
 #include "src/deserialization/WavPlaybackFile.h"
 #include "src/transport/IAMFTransport.h"
+#include "src/transport/IAMFTransport2.h"

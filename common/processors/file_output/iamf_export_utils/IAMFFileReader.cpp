@@ -121,11 +121,11 @@ void convertAndCopyChannelMajor(const int32_t* input,
     float* out = output.getWritePointer(channel);
 
     // Stride through input to pick out only this channel
-    const int32_t* in = input + channel;
+    const int32_t* kIn = input + channel;
 
     for (int sample = 0; sample < numSamples; ++sample) {
-      out[sample] = static_cast<float>(*in) * kScale;
-      in += numChannels;  // Jump to next sample for this channel
+      out[sample] = static_cast<float>(*kIn) * kScale;
+      kIn += numChannels;  // Jump to next sample for this channel
     }
   }
 }
@@ -176,29 +176,35 @@ size_t IAMFFileReader::parseFrame(juce::AudioBuffer<float>* buffer) {
   return samplesRead;
 }
 
+/**
+ * @brief To be called after parsing OBUs.
+ * Populate frameIdxs_ with positions of each frame in the file.
+ * Iterate through temporal units, recording the file position of each frame.
+ * Reset file position and reparse OBUs to prepare for actual reading as
+ * cleanup.
+ *
+ * @param decoder
+ * @param fileStream
+ * @return std::vector<IAMFFileReader::IdxEntry>
+ */
 std::vector<IAMFFileReader::IdxEntry> IAMFFileReader::buildFrameIndices(
     std::unique_ptr<Decoder>& decoder,
     std::unique_ptr<std::ifstream>& fileStream) {
-  // To be called after parsing OBUs.
-  // Populate frameIdxs_ with positions of each frame in the file.
-  // Iterate through temporal units, recording the file position of each frame.
-  // Reset file position and reparse OBUs to prepare for actual reading as
-  // cleanup.
+  jassert(decoder->IsDescriptorProcessingComplete());
+
   std::vector<IdxEntry> frameIdxs;
   size_t frameCount = 0;
-  std::streampos pos = fileStream->tellg();  // Get initial position
-  frameIdxs.push_back({pos});                // Record position of first frame
+  std::streampos pos = fileStream->tellg();
+  frameIdxs.push_back({pos});
   while (parseFrame()) {
-    pos = fileStream->tellg();   // Get position before next frame
-    frameIdxs.push_back({pos});  // Record position for next frame
+    pos = fileStream->tellg();
+    frameIdxs.push_back({pos});
     frameCount++;
   }
   streamData_.durationSecs =
       frameCount / (streamData_.sampleRate / streamData_.frameSize);
 
-  // Reset file position and reparse OBUs to prepare for actual reading
-  // The decoder must be reconstructed after resetting the file position
-  fileStream->clear();  // Clear EOF flag
+  fileStream->clear();
   fileStream->seekg(0, std::ios::beg);
   decoder = iamf_tools::api::IamfDecoderFactory::Create(settings_);
   if (!decoder) {
@@ -218,17 +224,8 @@ bool IAMFFileReader::seekFrame(const size_t frameIdx) {
     return false;
   }
 
-  // If seeking forward, just parse frames until we get there
-  if (frameIdx > currentFrameIdx_) {
-    while (currentFrameIdx_ < frameIdx) {
-      if (parseFrame() == 0) {
-        return false;  // Hit EOF
-      }
-    }
-    return true;
-  }
   // If seeking backward, reset decoder and file position, then advance
-  else if (frameIdx < currentFrameIdx_) {
+  if (frameIdx < currentFrameIdx_) {
     // Reset file position
     fileStream_->clear();
     fileStream_->seekg(0, std::ios::beg);
@@ -241,19 +238,19 @@ bool IAMFFileReader::seekFrame(const size_t frameIdx) {
     }
 
     // Reparse stream data
-    const StreamData streamData = parseStreamData(iamfDecoder_, fileStream_);
-    if (!streamData.valid) {
+    const StreamData kStreamData = parseStreamData(iamfDecoder_, fileStream_);
+    if (!kStreamData.valid) {
       LOG_ERROR(0, "IAMFFileReader: Failed to reparse stream data during seek");
       return false;
     }
 
     currentFrameIdx_ = 0;
+  }
 
-    // Now advance to desired frame
-    while (currentFrameIdx_ < frameIdx) {
-      if (parseFrame() == 0) {
-        return false;  // Hit EOF
-      }
+  // Advance to the requested frame
+  while (currentFrameIdx_ < frameIdx) {
+    if (parseFrame() == 0) {
+      return false;
     }
   }
 

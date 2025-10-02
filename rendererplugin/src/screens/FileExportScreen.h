@@ -106,10 +106,10 @@ class FileExportScreen : public juce::Component,
   juce::Label exportValidationLabel_;
   AudioPlayerComponent audioPlayer_;
   SelectionBox mixPresentationSelector_;
-  juce::Label mixElementsLabel_;
-  juce::Label mixElementsListLabel_;
-  juce::Label mixLoudnessLabel_;
-  juce::Label mixLoudnessValueLabel_;
+  // juce::Label mixElementsLabel_;
+  // juce::Label mixElementsListLabel_;
+  // juce::Label mixLoudnessLabel_;
+  // juce::Label mixLoudnessValueLabel_;
 
   // File selection elements
   juce::FileChooser audioOutputSelect_;

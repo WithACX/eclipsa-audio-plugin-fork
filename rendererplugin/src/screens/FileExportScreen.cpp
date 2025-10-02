@@ -54,10 +54,10 @@ FileExportScreen::FileExportScreen(MainEditor& editor,
           "*.mp4;*.mov"),
       exportButton_("Start Export"),
       exportValidationLabel_("exportValidationLbl", "Export validation"),
-      mixElementsLabel_("MixElementsLbl", "Mix elements"),
-      mixElementsListLabel_("MixElementsListLbl", "Element List"),
-      mixLoudnessLabel_("MixLoudnessLbl", "Mix loudness"),
-      mixLoudnessValueLabel_("MixLoudnessValueLbl", "loudness information"),
+      // mixElementsLabel_("MixElementsLbl", "Mix elements"),
+      // mixElementsListLabel_("MixElementsListLbl", "Element List"),
+      // mixLoudnessLabel_("MixLoudnessLbl", "Mix loudness"),
+      // mixLoudnessValueLabel_("MixLoudnessValueLbl", "loudness information"),
       mixPresentationSelector_("Mix Presentation"),
       repository_(&repos.fioRepo_),
       aeRepository_(&repos.aeRepo_),
@@ -80,10 +80,10 @@ FileExportScreen::FileExportScreen(MainEditor& editor,
   exportAudioLabel_.setColour(juce::Label::textColourId, textColour);
   muxVidoeLabel_.setColour(juce::Label::textColourId, textColour);
   exportValidationLabel_.setColour(juce::Label::textColourId, textColour);
-  mixElementsLabel_.setColour(juce::Label::textColourId, textColour);
-  mixElementsListLabel_.setColour(juce::Label::textColourId, textColour);
-  mixLoudnessLabel_.setColour(juce::Label::textColourId, textColour);
-  mixLoudnessValueLabel_.setColour(juce::Label::textColourId, textColour);
+  // mixElementsLabel_.setColour(juce::Label::textColourId, textColour);
+  // mixElementsListLabel_.setColour(juce::Label::textColourId, textColour);
+  // mixLoudnessLabel_.setColour(juce::Label::textColourId, textColour);
+  // mixLoudnessValueLabel_.setColour(juce::Label::textColourId, textColour);
 
   startTimerErrorLabel_.setColour(juce::Label::ColourIds::textColourId,
                                   EclipsaColours::red);
@@ -110,12 +110,12 @@ FileExportScreen::FileExportScreen(MainEditor& editor,
   customCodecParameterErrorLabel_.setFont(errorFont);
   customCodecParameterErrorLabel_.setJustificationType(
       juce::Justification::topLeft);
-  mixElementsLabel_.setFont(labelFont);
-  mixElementsListLabel_.setFont(smallLabelFont);
-  mixLoudnessLabel_.setFont(labelFont);
-  mixLoudnessValueLabel_.setFont(smallLabelFont);
-  mixElementsListLabel_.setJustificationType(juce::Justification::topLeft);
-  mixLoudnessValueLabel_.setJustificationType(juce::Justification::topLeft);
+  // mixElementsLabel_.setFont(labelFont);
+  // mixElementsListLabel_.setFont(smallLabelFont);
+  // mixLoudnessLabel_.setFont(labelFont);
+  // mixLoudnessValueLabel_.setFont(smallLabelFont);
+  // mixElementsListLabel_.setJustificationType(juce::Justification::topLeft);
+  // mixLoudnessValueLabel_.setJustificationType(juce::Justification::topLeft);
 
   // Set the error labels
   startTimerErrorLabel_.setText("",
@@ -563,26 +563,28 @@ void FileExportScreen::paint(juce::Graphics& g) {
   mixPresentationSelector_.setBounds(row);
   addAndMakeVisible(mixPresentationSelector_);
 
-  validationLeft.removeFromTop(rowPadding);
-  row = validationLeft.removeFromTop(mixElementsLabel_.getFont().getHeight());
-  mixElementsLabel_.setBounds(row);
-  addAndMakeVisible(mixElementsLabel_);
+  // validationLeft.removeFromTop(rowPadding);
+  // row =
+  // validationLeft.removeFromTop(mixElementsLabel_.getFont().getHeight());
+  // mixElementsLabel_.setBounds(row);
+  // addAndMakeVisible(mixElementsLabel_);
 
-  validationLeft.removeFromTop(5);    // Add some padding)
-  validationLeft.removeFromLeft(10);  // Tab label in slightly
-  mixElementsListLabel_.setBounds(validationLeft);
-  addAndMakeVisible(mixElementsListLabel_);
+  // validationLeft.removeFromTop(5);    // Add some padding)
+  // validationLeft.removeFromLeft(10);  // Tab label in slightly
+  // mixElementsListLabel_.setBounds(validationLeft);
+  // addAndMakeVisible(mixElementsListLabel_);
 
-  // // Put the loudness information in the right column
-  validationRight.removeFromTop(rowPadding);
-  row = validationRight.removeFromTop(mixLoudnessLabel_.getFont().getHeight());
-  mixLoudnessLabel_.setBounds(row);
-  addAndMakeVisible(mixLoudnessLabel_);
+  // // // Put the loudness information in the right column
+  // validationRight.removeFromTop(rowPadding);
+  // row =
+  // validationRight.removeFromTop(mixLoudnessLabel_.getFont().getHeight());
+  // mixLoudnessLabel_.setBounds(row);
+  // addAndMakeVisible(mixLoudnessLabel_);
 
-  validationRight.removeFromTop(5);    // Add some padding
-  validationRight.removeFromLeft(10);  // Tab label in slightly
-  mixLoudnessValueLabel_.setBounds(validationRight);
-  addAndMakeVisible(mixLoudnessValueLabel_);
+  // validationRight.removeFromTop(5);    // Add some padding
+  // validationRight.removeFromLeft(10);  // Tab label in slightly
+  // mixLoudnessValueLabel_.setBounds(validationRight);
+  // addAndMakeVisible(mixLoudnessValueLabel_);
 };
 
 juce::String FileExportScreen::timeToString(int timeInSeconds) {

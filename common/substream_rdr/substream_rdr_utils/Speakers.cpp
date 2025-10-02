@@ -847,3 +847,31 @@ AudioElementSpeakerLayout::getITUChannelOrdering() const {
       break;
   }
 }
+
+// The inverse of the constructor that takes an OutputLayout
+iamf_tools::api::OutputLayout AudioElementSpeakerLayout::getIamfOutputLayout()
+    const {
+  using OutputLayout = iamf_tools::api::OutputLayout;
+  switch (index_) {
+    case kStereo:
+      return OutputLayout::kItu2051_SoundSystemA_0_2_0;
+    case k3Point1Point2:
+      return OutputLayout::kIAMF_SoundSystemExtension_2_3_0;
+    case k5Point1:
+      return OutputLayout::kItu2051_SoundSystemB_0_5_0;
+    case k5Point1Point2:
+      return OutputLayout::kItu2051_SoundSystemC_2_5_0;
+    case k5Point1Point4:
+      return OutputLayout::kItu2051_SoundSystemD_4_5_0;
+    case k7Point1:
+      return OutputLayout::kItu2051_SoundSystemI_0_7_0;
+    case k7Point1Point2:
+      return OutputLayout::kIAMF_SoundSystemExtension_2_7_0;
+    case k7Point1Point4:
+      return OutputLayout::kItu2051_SoundSystemJ_4_7_0;
+    case kExpl9Point1Point6:
+      return OutputLayout::kItu2051_SoundSystemH_9_10_3;
+    default:
+      return OutputLayout::kItu2051_SoundSystemA_0_2_0;
+  }
+}

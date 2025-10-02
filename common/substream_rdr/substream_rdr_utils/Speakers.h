@@ -74,6 +74,7 @@ class AudioElementSpeakerLayout {
   std::vector<juce::String> getSpeakerLabels() const;
   std::string getItuString() const;
   const juce::Array<ChannelType> getITUChannelOrdering() const;
+  iamf_tools::api::OutputLayout getIamfOutputLayout() const;
 
   /**
    * @brief Checks whether this layout is an expanded loudspeaker layout, and
