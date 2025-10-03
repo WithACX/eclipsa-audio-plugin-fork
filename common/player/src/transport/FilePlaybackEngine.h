@@ -11,14 +11,25 @@
 class FilePlaybackEngine {
  public:
   FilePlaybackEngine(const std::filesystem::path iamfPath) : source_(iamfPath) {
+    // Attempt to configure playback based on the file's properties
     streamData_ = source_.getStreamData();
-    const auto kFrameSize = streamData_.frameSize;
-    const auto kNumChannels = streamData_.numChannels;
-    const auto kSampleRate = streamData_.sampleRate;
+    auto frameSize = streamData_.frameSize;
+    auto numChannels = streamData_.numChannels;
+    auto sampleRate = streamData_.sampleRate;
+    // if (!configureSourcePlayer(sampleRate, frameSize, numChannels) ||
+    //     !configurePlaybackDevice(sampleRate, frameSize, numChannels)) {
+    //   LOG_WARNING(0,
+    //               "FilePlaybackEngine: Failed to configure playback as "
+    //               "requested. Falling back to playback device defaults");
+    //   auto setup = deviceManager_.getAudioDeviceSetup();
+    //   sampleRate = setup.sampleRate;
+    //   frameSize = setup.bufferSize;
+    // numChannels = setup.outputChannels.countNumberOfSetBits();
+    configureSourcePlayer(sampleRate, frameSize, numChannels);
+    configurePlaybackDevice(sampleRate, frameSize, numChannels);
+    // }
 
-    configureSourcePlayer(kSampleRate, kFrameSize, kNumChannels);
-    configurePlaybackDevice(kSampleRate, kFrameSize, kNumChannels);
-
+    // Other configuration for playback
     deviceManager_.addAudioCallback(&sourcePlayer_);
     source_.play();
   }
@@ -37,8 +48,7 @@ class FilePlaybackEngine {
     auto setup = deviceManager_.getAudioDeviceSetup();
     setup.sampleRate = sampleRate;
     setup.bufferSize = frameSize;
-    setup.outputChannels =
-        3;  // Todo: Take the layout and convert to juce chset.
+    setup.useDefaultOutputChannels = true;
     const auto err = deviceManager_.setAudioDeviceSetup(setup, true);
 
     // Validate settings updated.
@@ -55,6 +65,7 @@ class FilePlaybackEngine {
   }
 
   ~FilePlaybackEngine() {
+    // Stop playback and clean up
     source_.stop();
     source_.releaseResources();
     sourcePlayer_.setSource(nullptr);

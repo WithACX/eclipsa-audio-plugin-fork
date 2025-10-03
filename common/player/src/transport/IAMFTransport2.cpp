@@ -1,5 +1,6 @@
 #include "IAMFTransport2.h"
 
+#include "logger/logger.h"
 #include "processors/file_output/iamf_export_utils/IAMFFileReader.h"
 
 IAMFAudioSource::IAMFAudioSource(const std::filesystem::path& iamfFilePath)
@@ -14,6 +15,12 @@ void IAMFAudioSource::prepareToPlay(int samplesPerBlockExpected,
       IAMFFileReader::Settings{.requested_mix.output_layout =
                                    decodeLayout_.getIamfOutputLayout()});
   currentFrameIdx_ = 0;
+
+  if (sampleRate != reader_->getStreamData().sampleRate) {
+    LOG_INFO(0,
+             "IAMFAudioSource: prepareToPlay called with sample rate "
+             "different from that of the IAMF file. Resampling for playback.");
+  }
 }
 
 void IAMFAudioSource::releaseResources() {}
@@ -45,6 +52,10 @@ void IAMFAudioSource::getNextAudioBlock(
     }
   }
 
+  // Debug
+  std::cout << "Channels to copy: " << kNumChannelsToCopy
+            << ", Samples to copy: " << numSamplesToCopy << std::endl;
+
   // Fill any remaining samples with silence
   if (numSamplesToCopy < bufferToFill.numSamples)
     for (int i = 0; i < decodeLayout_.getNumChannels(); ++i)
@@ -64,8 +75,8 @@ void IAMFAudioSource::stop() {
   state_ = kStop;
   currentFrameIdx_ = 0;
   // TODO: Add a reset function to IAMFFileReader
-  reader_ = std::make_unique<IAMFFileReader>(
-      kFilePath_,
-      IAMFFileReader::Settings{.requested_mix.output_layout =
-                                   decodeLayout_.getIamfOutputLayout()});
+  // reader_ = std::make_unique<IAMFFileReader>(
+  //     kFilePath_,
+  //     IAMFFileReader::Settings{.requested_mix.output_layout =
+  //                                  decodeLayout_.getIamfOutputLayout()});
 }
