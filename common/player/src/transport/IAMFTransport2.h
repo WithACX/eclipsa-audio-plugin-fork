@@ -24,6 +24,10 @@ class IAMFAudioSource : public juce::AudioSource {
   void getNextAudioBlock(
       const juce::AudioSourceChannelInfo& bufferToFill) override;
 
+  IAMFFileReader::StreamData getStreamData() const {
+    if (reader_) return reader_->getStreamData();
+    return {};
+  }
   void setPlaybackLayout(const Speakers::AudioElementSpeakerLayout layout);
 
   PlaybackState getPlaybackState() const { return state_; }
@@ -37,7 +41,8 @@ class IAMFAudioSource : public juce::AudioSource {
  private:
   const std::filesystem::path kFilePath_;
   PlaybackState state_ = kStop;
-  Speakers::AudioElementSpeakerLayout playbackLayout_ = Speakers::kStereo;
+  // Layout we attempt to decode from the IAMF file
+  Speakers::AudioElementSpeakerLayout decodeLayout_ = Speakers::kStereo;
   size_t currentFrameIdx_ = 0, totalFrames_ = 0;
   std::unique_ptr<IAMFFileReader> reader_;
 };

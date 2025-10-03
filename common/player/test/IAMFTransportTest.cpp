@@ -18,6 +18,7 @@
 #include <thread>
 
 #include "../../player/player.h"
+#include "player/src/transport/FilePlaybackEngine.h"
 #include "player/src/transport/IAMFTransport2.h"
 
 // TEST(test_iamf_transport, instantiation) {
@@ -51,6 +52,9 @@ TEST(test_iamf_transport, basic) {
   // Initialize audio device with stereo output
   juce::AudioDeviceManager deviceManager;
   auto result = deviceManager.initialise(0, 2, nullptr, true);
+  // deviceManager.getCurrentAudioDevice(). This method I can see all the
+  // information about the current device. deviceManager.getAudioDeviceSetup().
+  // Same here
   ASSERT_TRUE(result.isEmpty())
       << "Failed to initialize audio: " << result.toStdString();
 
@@ -60,7 +64,9 @@ TEST(test_iamf_transport, basic) {
   iamfSource.prepareToPlay(samplesPerBlock, sampleRate);
 
   juce::AudioSourcePlayer audioSourcePlayer;
+  audioSourcePlayer.prepareToPlay(sampleRate, samplesPerBlock);
   audioSourcePlayer.setSource(&iamfSource);
+
   deviceManager.addAudioCallback(&audioSourcePlayer);
 
   // Start playback
@@ -79,4 +85,20 @@ TEST(test_iamf_transport, basic) {
   deviceManager.removeAudioCallback(&audioSourcePlayer);
   audioSourcePlayer.setSource(nullptr);
   iamfSource.releaseResources();
+}
+
+TEST(test_iamf_transport, engine) {
+  const std::filesystem::path kIamfReferencePath =
+      std::filesystem::current_path() / "test_reader.iamf";
+
+  // Initialize JUCE's message manager and make this the message thread.
+  // This is required for testing with the device manager.
+  if (!juce::MessageManager::getInstance()->isThisTheMessageThread()) {
+    juce::MessageManager::getInstance()->setCurrentThreadAsMessageThread();
+  }
+
+  // Now we can safely create the engine
+  auto player = std::make_unique<FilePlaybackEngine>(kIamfReferencePath);
+
+  std::this_thread::sleep_for(std::chrono::seconds(2));
 }
