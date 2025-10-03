@@ -13,5 +13,5 @@
 // limitations under the License.
 #include "player.h"
 
+#include "src/transport/IAMFAudioSource.cpp"
 #include "src/transport/IAMFTransport.cpp"
-#include "src/transport/IAMFTransport2.cpp"

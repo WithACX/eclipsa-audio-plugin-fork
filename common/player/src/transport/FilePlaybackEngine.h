@@ -5,7 +5,7 @@
 #include <filesystem>
 
 #include "logger/logger.h"
-#include "player/src/transport/IAMFTransport2.h"
+#include "player/src/transport/IAMFAudioSource.h"
 #include "processors/file_output/iamf_export_utils/IAMFFileReader.h"
 
 class FilePlaybackEngine {
@@ -16,18 +16,9 @@ class FilePlaybackEngine {
     auto frameSize = streamData_.frameSize;
     auto numChannels = streamData_.numChannels;
     auto sampleRate = streamData_.sampleRate;
-    // if (!configureSourcePlayer(sampleRate, frameSize, numChannels) ||
-    //     !configurePlaybackDevice(sampleRate, frameSize, numChannels)) {
-    //   LOG_WARNING(0,
-    //               "FilePlaybackEngine: Failed to configure playback as "
-    //               "requested. Falling back to playback device defaults");
-    //   auto setup = deviceManager_.getAudioDeviceSetup();
-    //   sampleRate = setup.sampleRate;
-    //   frameSize = setup.bufferSize;
-    // numChannels = setup.outputChannels.countNumberOfSetBits();
+
     configureSourcePlayer(sampleRate, frameSize, numChannels);
     configurePlaybackDevice(sampleRate, frameSize, numChannels);
-    // }
 
     // Other configuration for playback
     deviceManager_.addAudioCallback(&sourcePlayer_);
@@ -53,11 +44,8 @@ class FilePlaybackEngine {
 
     // Validate settings updated.
     setup = deviceManager_.getAudioDeviceSetup();
-    if (err.isNotEmpty() || setup.sampleRate != sampleRate ||
-        setup.bufferSize != frameSize
-        // setup.outputChannels.toInteger() != numChannels // TODO: Fix this
-        // check
-    ) {
+    if (setup.sampleRate != sampleRate || setup.bufferSize != frameSize ||
+        setup.outputChannels.countNumberOfSetBits() != numChannels) {
       LOG_WARNING(0,
                   "FilePlaybackEngine: Failed to configure playback device as "
                   "requested. Audio source may not play as expected.");
