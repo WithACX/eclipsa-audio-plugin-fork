@@ -63,7 +63,7 @@ void IAMFAudioSource::getNextAudioBlock(
                                  bufferToFill.numSamples - numSamplesToCopy);
 }
 
-void IAMFAudioSource::setPlaybackLayout(
+void IAMFAudioSource::setDecodeLayout(
     const Speakers::AudioElementSpeakerLayout layout) {
   decodeLayout_ = layout;
   reader_ = std::make_unique<IAMFFileReader>(

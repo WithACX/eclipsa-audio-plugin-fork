@@ -37,6 +37,14 @@ class IAMFFileReader {
                  const Settings& settings);
   ~IAMFFileReader();
 
+  // Delete copy constructor and assignment
+  IAMFFileReader(const IAMFFileReader&) = delete;
+  IAMFFileReader& operator=(const IAMFFileReader&) = delete;
+
+  // Enable move constructor and assignment
+  IAMFFileReader(IAMFFileReader&&) noexcept = default;
+  IAMFFileReader& operator=(IAMFFileReader&&) noexcept = default;
+
   StreamData getStreamData() const { return streamData_; }
   size_t readFrame(juce::AudioBuffer<float>& buffer);
   size_t readFrame(juce::AudioBuffer<double>& buffer);

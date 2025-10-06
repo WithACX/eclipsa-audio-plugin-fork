@@ -19,7 +19,6 @@ class IAMFAudioSource : public juce::AudioSource {
   IAMFAudioSource(const std::filesystem::path& iamfFilePath);
   ~IAMFAudioSource() = default;
 
-  // Methods required for a juce::AudioSource
   void prepareToPlay(int samplesPerBlockExpected, double sampleRate) override;
   void releaseResources() override;
   void getNextAudioBlock(

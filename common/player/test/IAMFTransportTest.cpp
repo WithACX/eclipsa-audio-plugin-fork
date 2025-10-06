@@ -17,7 +17,7 @@
 #include <filesystem>
 #include <thread>
 
-#include "player/src/transport/FilePlaybackEngine.h"
+#include "player/src/transport/IAMFPlaybackEngine.h"
 
 TEST(test_iamf_transport, engine) {
   const std::filesystem::path kIamfReferencePath =
@@ -30,7 +30,7 @@ TEST(test_iamf_transport, engine) {
   }
 
   // Now we can safely create the engine
-  auto player = std::make_unique<FilePlaybackEngine>(kIamfReferencePath);
+  auto player = std::make_unique<IAMFPlaybackEngine>(kIamfReferencePath);
 
   std::this_thread::sleep_for(std::chrono::seconds(2));
 }
