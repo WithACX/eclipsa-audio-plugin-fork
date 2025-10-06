@@ -28,7 +28,10 @@ class IAMFPlaybackEngine {
         resampler_ = std::make_unique<juce::ResamplingAudioSource>(
             decoderSource_.get(), false,
             kPlaybackSetup.outputChannels.countNumberOfSetBits());
-        resampler_->setResamplingRatio(kPlaybackSetup.sampleRate / sampleRate);
+        resampler_->setResamplingRatio(sampleRate / kPlaybackSetup.sampleRate);
+        LOG_INFO(0, "IAMFPlaybackEngine: Resampling IAMF " +
+                        std::to_string(sampleRate) + " to " +
+                        std::to_string(kPlaybackSetup.sampleRate));
       }
       // TODO: It's possible we didn't get the frame size we requested. What
       // happens here?
@@ -39,7 +42,6 @@ class IAMFPlaybackEngine {
 
     // Other configuration for playback
     deviceManager_.addAudioCallback(&sourcePlayer_);
-    // source_.play();
   }
 
   bool configureSourcePlayer(const unsigned sampleRate,
@@ -76,10 +78,27 @@ class IAMFPlaybackEngine {
     }
   }
 
+  void play() {
+    if (decoderSource_) {
+      decoderSource_->play();
+    }
+  }
+
+  void pause() {
+    if (decoderSource_) {
+      decoderSource_->pause();
+    }
+  }
+
+  void stop() {
+    if (decoderSource_) {
+      decoderSource_->stop();
+    }
+  }
+
   ~IAMFPlaybackEngine() {
     // Stop playback and clean up
-    // source_.stop();
-    // source_.releaseResources();
+    stop();
     sourcePlayer_.setSource(nullptr);
     deviceManager_.removeAudioCallback(&sourcePlayer_);
   }

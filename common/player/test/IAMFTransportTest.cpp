@@ -32,5 +32,7 @@ TEST(test_iamf_transport, engine) {
   // Now we can safely create the engine
   auto player = std::make_unique<IAMFPlaybackEngine>(kIamfReferencePath);
 
+  player->play();
   std::this_thread::sleep_for(std::chrono::seconds(2));
+  player->stop();
 }
