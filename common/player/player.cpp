@@ -15,4 +15,5 @@
 
 #include "src/transport/IAMFAudioSource.cpp"
 #include "src/transport/IAMFDecoderSource.cpp"
+#include "src/transport/IAMFPlaybackEngine.cpp"
 #include "src/transport/IAMFTransport.cpp"
