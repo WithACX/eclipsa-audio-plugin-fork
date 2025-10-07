@@ -17,7 +17,7 @@ class IAMFFileReader {
   struct StreamData {
     int numChannels = 0;
     unsigned sampleRate = 0, frameSize = 0;
-    size_t durationSecs = 0;
+    size_t numFrames = 0, currentFrameIdx = 0;
     Speakers::AudioElementSpeakerLayout playbackLayout = Speakers::kUnknown;
     bool valid = false;
   };
@@ -35,15 +35,11 @@ class IAMFFileReader {
   IAMFFileReader(const std::filesystem::path& iamfFilePath);
   IAMFFileReader(const std::filesystem::path& iamfFilePath,
                  const Settings& settings);
-  ~IAMFFileReader();
-
-  // Delete copy constructor and assignment
   IAMFFileReader(const IAMFFileReader&) = delete;
   IAMFFileReader& operator=(const IAMFFileReader&) = delete;
-
-  // Enable move constructor and assignment
   IAMFFileReader(IAMFFileReader&&) noexcept = default;
   IAMFFileReader& operator=(IAMFFileReader&&) noexcept = default;
+  ~IAMFFileReader();
 
   StreamData getStreamData() const { return streamData_; }
   size_t readFrame(juce::AudioBuffer<float>& buffer);
@@ -61,12 +57,10 @@ class IAMFFileReader {
       std::unique_ptr<Decoder>& decoder,
       std::unique_ptr<std::ifstream>& fileStream);
 
-  size_t currentFrameIdx_ = 0;
-
   const std::filesystem::path kFilePath_;
   Settings settings_;
-  StreamData streamData_;
   std::unique_ptr<Decoder> iamfDecoder_;
   std::unique_ptr<std::ifstream> fileStream_;
   std::vector<IdxEntry> frameIdxs_;
+  StreamData streamData_;
 };

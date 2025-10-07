@@ -2,10 +2,13 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
+#include <memory>
+
 #include "components/src/AudioPlayer.h"
 #include "components/src/ColouredSlider.h"
 #include "components/src/Icons.h"
 #include "components/src/RoundImageButton.h"
+#include "player/src/transport/IAMFPlaybackEngine.h"
 
 class AudioFilePlayer : public juce::Component {
  public:
@@ -13,7 +16,14 @@ class AudioFilePlayer : public juce::Component {
       : playButton_("Play", IconStore::getInstance().getPlayIcon()),
         pauseButton_("Pause", IconStore::getInstance().getPauseIcon()),
         stopButton_("Stop", IconStore::getInstance().getStopIcon()),
-        timeLabel_("timeLabel", "00:00 / 00:00") {
+        timeLabel_("timeLabel", "00:00 / 00:00"),
+        // Debug: Hardcoding this during testing
+        playbackEngine_(std::make_unique<IAMFPlaybackEngine>(
+            "/Users/joelm/Desktop/FIOTests/ReferenceIAMF.iamf")) {
+    playButton_.onClick = [this]() { playbackEngine_->play(); };
+    pauseButton_.onClick = [this]() { playbackEngine_->pause(); };
+    stopButton_.onClick = [this]() { playbackEngine_->stop(); };
+
     playbackSlider_.setRange(0.0, 1.0);
     playbackSlider_.setValue(0.0);
     playbackSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
@@ -57,10 +67,38 @@ class AudioFilePlayer : public juce::Component {
         volumeBounds_.removeFromLeft(100).reduced(kButtonMargin));
   }
 
+  void update() {
+    if (playbackEngine_) {
+      const auto streamData = playbackEngine_->getStreamData();
+      const auto currentPos =
+          streamData.currentFrameIdx *
+          (streamData.frameSize / static_cast<double>(streamData.sampleRate));
+      const auto duration =
+          streamData.numFrames *
+          (streamData.frameSize / static_cast<double>(streamData.sampleRate));
+      if (duration > 0) {
+        const float position = static_cast<float>(currentPos) / duration;
+        playbackSlider_.setValue(position, juce::dontSendNotification);
+
+        const int currentMins = static_cast<int>(currentPos) / 60;
+        const int currentSecs = static_cast<int>(currentPos) % 60;
+        const int durationMins = static_cast<int>(duration) / 60;
+        const int durationSecs = static_cast<int>(duration) % 60;
+        timeLabel_.setText(
+            juce::String::formatted("%02d:%02d / %02d:%02d", currentMins,
+                                    currentSecs, durationMins, durationSecs),
+            juce::dontSendNotification);
+      } else {
+        timeLabel_.setText("00:00 / 00:00", juce::dontSendNotification);
+      }
+    }
+  }
+
  private:
   RoundImageButton playButton_, pauseButton_, stopButton_;
   juce::Label timeLabel_;
   ColouredSlider playbackSlider_, volumeSlider_;
   SpeakerImageComponent speakerIcon_;
   juce::Rectangle<int> playbackBounds_, volumeBounds_;
+  std::unique_ptr<class IAMFPlaybackEngine> playbackEngine_;
 };

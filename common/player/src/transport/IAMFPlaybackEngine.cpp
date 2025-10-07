@@ -69,6 +69,13 @@ bool IAMFPlaybackEngine::configurePlaybackDevice(const unsigned sampleRate,
   }
 }
 
+IAMFFileReader::StreamData IAMFPlaybackEngine::getStreamData() const {
+  if (decoderSource_) {
+    return decoderSource_->getDecoder().getStreamData();
+  }
+  return {};
+}
+
 void IAMFPlaybackEngine::play() {
   if (decoderSource_) {
     decoderSource_->play();
