@@ -1,8 +1,5 @@
 #include "IAMFDecoderSource.h"
 
-#include <chrono>
-#include <iostream>
-
 IAMFDecoderSource::IAMFDecoderSource(const std::filesystem::path iamfPath)
     : decoder_(iamfPath), isPlaying_(false) {}
 
@@ -25,29 +22,11 @@ void IAMFDecoderSource::stop() {
 }
 
 bool IAMFDecoderSource::seek(size_t frameIndex) {
-  auto start = std::chrono::high_resolution_clock::now();
-  std::cout << "  [DecoderSource] Acquiring lock..." << std::endl;
-  
   const juce::SpinLock::ScopedLockType lock(decoderLock_);
-  auto after_lock = std::chrono::high_resolution_clock::now();
-  auto lock_duration = std::chrono::duration_cast<std::chrono::microseconds>(
-      after_lock - start).count();
-  std::cout << "  [DecoderSource] Lock acquired in: " << lock_duration << " μs" << std::endl;
-  
   if (!decoder_.seekFrame(frameIndex)) {
     return false;
   }
-  auto after_decoder_seek = std::chrono::high_resolution_clock::now();
-  auto decoder_seek_duration = std::chrono::duration_cast<std::chrono::microseconds>(
-      after_decoder_seek - after_lock).count();
-  std::cout << "  [DecoderSource] Decoder seekFrame took: " << decoder_seek_duration << " μs" << std::endl;
-  
   clearFifoBuffer();
-  auto after_clear = std::chrono::high_resolution_clock::now();
-  auto clear_duration = std::chrono::duration_cast<std::chrono::microseconds>(
-      after_clear - after_decoder_seek).count();
-  std::cout << "  [DecoderSource] Clear FIFO took: " << clear_duration << " μs" << std::endl;
-  
   return true;
 }
 

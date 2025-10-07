@@ -1,8 +1,5 @@
 #include "IAMFPlaybackEngine.h"
 
-#include <chrono>
-#include <iostream>
-
 #include "logger/logger.h"
 #include "processors/file_output/iamf_export_utils/IAMFFileReader.h"
 
@@ -103,47 +100,14 @@ void IAMFPlaybackEngine::setVolume(const float volume) {
 }
 
 void IAMFPlaybackEngine::seek(const float position) {
-  auto start_total = std::chrono::high_resolution_clock::now();
-  std::cout << "=== SEEK BENCHMARK START ===" << std::endl;
-  
   decoderSource_->pause();
-  auto after_pause = std::chrono::high_resolution_clock::now();
-  auto pause_duration = std::chrono::duration_cast<std::chrono::microseconds>(
-      after_pause - start_total).count();
-  std::cout << "Pause took: " << pause_duration << " μs" << std::endl;
-  
   resampler_->flushBuffers();
-  auto after_flush = std::chrono::high_resolution_clock::now();
-  auto flush_duration = std::chrono::duration_cast<std::chrono::microseconds>(
-      after_flush - after_pause).count();
-  std::cout << "Flush buffers took: " << flush_duration << " μs" << std::endl;
-  
   IAMFFileReader::StreamData streamData =
       decoderSource_->getDecoder().getStreamData();
-  auto after_get_data = std::chrono::high_resolution_clock::now();
-  auto get_data_duration = std::chrono::duration_cast<std::chrono::microseconds>(
-      after_get_data - after_flush).count();
-  std::cout << "Get stream data took: " << get_data_duration << " μs" << std::endl;
-  
   if (!decoderSource_->seek(position * streamData.numFrames)) {
     LOG_WARNING(0, "IAMFPlaybackEngine: Seek operation failed");
   }
-  auto after_seek = std::chrono::high_resolution_clock::now();
-  auto seek_duration = std::chrono::duration_cast<std::chrono::microseconds>(
-      after_seek - after_get_data).count();
-  std::cout << "Decoder source seek took: " << seek_duration << " μs" << std::endl;
-  
   decoderSource_->play();
-  auto after_play = std::chrono::high_resolution_clock::now();
-  auto play_duration = std::chrono::duration_cast<std::chrono::microseconds>(
-      after_play - after_seek).count();
-  std::cout << "Play resume took: " << play_duration << " μs" << std::endl;
-  
-  auto total_duration = std::chrono::duration_cast<std::chrono::microseconds>(
-      after_play - start_total).count();
-  std::cout << "TOTAL SEEK TIME: " << total_duration << " μs (" 
-            << (total_duration / 1000.0) << " ms)" << std::endl;
-  std::cout << "=== SEEK BENCHMARK END ===" << std::endl;
 }
 
 IAMFPlaybackEngine::~IAMFPlaybackEngine() {
