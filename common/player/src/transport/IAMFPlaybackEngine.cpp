@@ -100,19 +100,10 @@ void IAMFPlaybackEngine::setVolume(const float volume) {
 }
 
 void IAMFPlaybackEngine::seek(const float position) {
-  const bool kWasPlaying = decoderSource_->isPlaying();
-  if (kWasPlaying) {
-    decoderSource_->stop();
-    sourcePlayer_.setSource(nullptr);
-    deviceManager_.removeAudioCallback(&sourcePlayer_);
-  }
   IAMFFileReader::StreamData streamData =
       decoderSource_->getDecoder().getStreamData();
-  decoderSource_->seek(position * streamData.numFrames);
-  if (kWasPlaying) {
-    sourcePlayer_.setSource(decoderSource_.get());
-    deviceManager_.addAudioCallback(&sourcePlayer_);
-    decoderSource_->play();
+  if (!decoderSource_->seek(position * streamData.numFrames)) {
+    LOG_WARNING(0, "IAMFPlaybackEngine: Seek operation failed");
   }
 }
 

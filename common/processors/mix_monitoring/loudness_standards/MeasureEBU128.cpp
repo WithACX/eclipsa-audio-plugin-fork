@@ -96,8 +96,8 @@ float MeasureEBU128::calculateTruePeakLevel(
 
     // LPF.
     juce::IIRFilter lpfFilter;
-    lpfFilter.setCoefficients(
-        juce::IIRCoefficients::makeLowPass(kSampleRate_, 20e3));
+    lpfFilter.setCoefficients(juce::IIRCoefficients::makeLowPass(
+        kUpsampleRatio_ * kSampleRate_, 20e3));
     lpfFilter.processSamples(upsampledBuffer_.getWritePointer(i),
                              upsampledBuffer_.getNumSamples());
   }
