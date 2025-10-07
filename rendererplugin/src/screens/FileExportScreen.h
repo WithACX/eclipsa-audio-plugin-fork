@@ -18,6 +18,7 @@
 #include <components/components.h>
 
 #include "../RendererProcessor.h"
+#include "components/src/ExportValidation.h"
 #include "components/src/SelectionBox.h"
 #include "components/src/SliderButton.h"
 #include "components/src/TitledLabel.h"
@@ -103,9 +104,10 @@ class FileExportScreen : public juce::Component,
   juce::ImageButton browseVideoSourceButton_;
 
   // Player elements
-  juce::Label exportValidationLabel_;
-  AudioPlayerComponent audioPlayer_;
-  SelectionBox mixPresentationSelector_;
+  ExportValidationComponent exportValidation_;
+  // juce::Label exportValidationLabel_;
+  // AudioPlayerComponent audioPlayer_;
+  // SelectionBox mixPresentationSelector_;
   // juce::Label mixElementsLabel_;
   // juce::Label mixElementsListLabel_;
   // juce::Label mixLoudnessLabel_;

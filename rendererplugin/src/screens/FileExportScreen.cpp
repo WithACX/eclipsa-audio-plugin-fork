@@ -53,17 +53,17 @@ FileExportScreen::FileExportScreen(MainEditor& editor,
           juce::File::getSpecialLocation(juce::File::userDesktopDirectory),
           "*.mp4;*.mov"),
       exportButton_("Start Export"),
-      exportValidationLabel_("exportValidationLbl", "Export validation"),
+      // exportValidationLabel_("exportValidationLbl", "Export validation"),
       // mixElementsLabel_("MixElementsLbl", "Mix elements"),
       // mixElementsListLabel_("MixElementsListLbl", "Element List"),
       // mixLoudnessLabel_("MixLoudnessLbl", "Mix loudness"),
       // mixLoudnessValueLabel_("MixLoudnessValueLbl", "loudness information"),
-      mixPresentationSelector_("Mix Presentation"),
+      // mixPresentationSelector_("Mix Presentation"),
       repository_(&repos.fioRepo_),
       aeRepository_(&repos.aeRepo_),
       mpRepository_(&repos.mpRepo_),
       filePlaybackRepository_(&repos.playbackRepo_),
-      audioPlayer_(&repos.playbackRepo_, playbackMonitorData_),
+      // audioPlayer_(&repos.playbackRepo_, playbackMonitorData_),
       playbackMonitorData_(playbackMonitorData) {
   // Setup listeners to know when to redraw the screen
   aeRepository_->registerListener(this);
@@ -79,7 +79,7 @@ FileExportScreen::FileExportScreen(MainEditor& editor,
   exportAudioElementsLabel_.setColour(juce::Label::textColourId, textColour);
   exportAudioLabel_.setColour(juce::Label::textColourId, textColour);
   muxVidoeLabel_.setColour(juce::Label::textColourId, textColour);
-  exportValidationLabel_.setColour(juce::Label::textColourId, textColour);
+  // exportValidationLabel_.setColour(juce::Label::textColourId, textColour);
   // mixElementsLabel_.setColour(juce::Label::textColourId, textColour);
   // mixElementsListLabel_.setColour(juce::Label::textColourId, textColour);
   // mixLoudnessLabel_.setColour(juce::Label::textColourId, textColour);
@@ -102,7 +102,7 @@ FileExportScreen::FileExportScreen(MainEditor& editor,
   exportAudioElementsLabel_.setFont(labelFont);
   exportAudioLabel_.setFont(textFont);
   muxVidoeLabel_.setFont(textFont);
-  exportValidationLabel_.setFont(textFont);
+  // exportValidationLabel_.setFont(textFont);
   startTimerErrorLabel_.setFont(errorFont);
   endTimerErrorLabel_.setFont(errorFont);
   startTimerErrorLabel_.setJustificationType(juce::Justification::topLeft);
@@ -338,6 +338,8 @@ FileExportScreen::FileExportScreen(MainEditor& editor,
   // Redraw the non-configurable components
   refreshComponents();
 
+  addAndMakeVisible(exportValidation_);
+
   addAndMakeVisible(warningLabel_);
   warningLabel_.setColour(juce::Label::ColourIds::textColourId,
                           EclipsaColours::red);
@@ -536,32 +538,34 @@ void FileExportScreen::paint(juce::Graphics& g) {
   rightSideBounds.removeFromLeft(mainColumnPadding);
   auto validationBounds = bounds.removeFromLeft(mainColumnWidth);
 
-  // Add the validation label
-  row = validationBounds.removeFromTop(rowHeight);
-  addAndMakeVisible(exportValidationLabel_);
-  exportValidationLabel_.setBounds(row);
+  exportValidation_.setBounds(validationBounds);
 
-  // Draw the audio player component
-  row = validationBounds.removeFromTop(rowHeight * 1);
-  audioPlayer_.setBounds(row);
-  addAndMakeVisible(audioPlayer_);
+  // // Add the validation label
+  // row = validationBounds.removeFromTop(rowHeight);
+  // addAndMakeVisible(exportValidationLabel_);
+  // exportValidationLabel_.setBounds(row);
 
-  // Split the file validation area into two columns
-  validationBounds.removeFromTop(rowPadding);
-  auto validationLeft = validationBounds.removeFromLeft(
-      (validationBounds.getWidth() / 2) - columnPadding);
-  auto validationMiddle = validationBounds.removeFromLeft(rowPadding);
-  auto validationRight = validationBounds;
+  // // Draw the audio player component
+  // row = validationBounds.removeFromTop(rowHeight * 1);
+  // audioPlayer_.setBounds(row);
+  // addAndMakeVisible(audioPlayer_);
 
-  // Add the separator line
-  g.setColour(EclipsaColours::lightGridLine);
-  validationMiddle = validationMiddle.reduced((rowPadding / 2) - 1, rowPadding);
-  g.fillRect(validationMiddle.toFloat());
+  // // Split the file validation area into two columns
+  // validationBounds.removeFromTop(rowPadding);
+  // auto validationLeft = validationBounds.removeFromLeft(
+  //     (validationBounds.getWidth() / 2) - columnPadding);
+  // auto validationMiddle = validationBounds.removeFromLeft(rowPadding);
+  // auto validationRight = validationBounds;
 
-  // Put the mix presentation selector and mix elements list in the left column
-  row = validationLeft.removeFromTop(rowHeight);
-  mixPresentationSelector_.setBounds(row);
-  addAndMakeVisible(mixPresentationSelector_);
+  // // Add the separator line
+  // g.setColour(EclipsaColours::lightGridLine);
+  // validationMiddle = validationMiddle.reduced((rowPadding / 2) - 1,
+  // rowPadding); g.fillRect(validationMiddle.toFloat());
+
+  // // Put the mix presentation selector and mix elements list in the left
+  // column row = validationLeft.removeFromTop(rowHeight);
+  // mixPresentationSelector_.setBounds(row);
+  // addAndMakeVisible(mixPresentationSelector_);
 
   // validationLeft.removeFromTop(rowPadding);
   // row =
