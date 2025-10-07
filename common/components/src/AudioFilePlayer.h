@@ -41,38 +41,44 @@ class AudioFilePlayer : public juce::Component {
     playbackBounds_ = bounds.removeFromTop(bounds.getHeight() * 0.5f);
     volumeBounds_ = bounds;
 
-    const int kButtonSz = 15;
-    const int kButtonMargin = 10;
-    playbackBounds_.removeFromLeft(kButtonMargin);
+    int kButtonSz = JUCE_LIVE_CONSTANT(35);
+    int kButtonMargin = JUCE_LIVE_CONSTANT(10);
     juce::FlexBox playbackFlex;
     playbackFlex.flexDirection = juce::FlexBox::Direction::row;
-    playbackFlex.justifyContent = juce::FlexBox::JustifyContent::spaceBetween;
-    playbackFlex.alignItems = juce::FlexBox::AlignItems::center;
-    playbackFlex.items.add(juce::FlexItem(playButton_)
-                               .withFlex(.33f)
-                               .withMinHeight(kButtonSz)
-                               .withMinWidth(kButtonSz));
-    playbackFlex.items.add(juce::FlexItem(pauseButton_)
-                               .withFlex(.33f)
-                               .withMinHeight(kButtonSz)
-                               .withMinWidth(kButtonSz));
-    playbackFlex.items.add(juce::FlexItem(stopButton_)
-                               .withFlex(.33f)
-                               .withMinHeight(kButtonSz)
-                               .withMinWidth(kButtonSz));
+    playbackFlex.justifyContent = juce::FlexBox::JustifyContent::center;
+    playbackFlex.alignItems = juce::FlexBox::AlignItems::stretch;
+    playbackFlex.items.add(
+        juce::FlexItem(playButton_)
+            .withFlex(1.0f)
+            .withMaxWidth(kButtonSz)
+            .withMaxHeight(kButtonSz)
+            .withMargin(juce::FlexItem::Margin(0, kButtonMargin, 0, 0)));
+    playbackFlex.items.add(
+        juce::FlexItem(stopButton_)
+            .withFlex(1.0f)
+            .withMaxWidth(kButtonSz)
+            .withMaxHeight(kButtonSz)
+            .withMargin(juce::FlexItem::Margin(0, kButtonMargin, 0, 0)));
+    playbackFlex.items.add(
+        juce::FlexItem(playbackSlider_)
+            .withFlex(3.0f)
+            .withMinHeight(10.0f)
+            .withMinWidth(100.0f)
+            .withAlignSelf(juce::FlexItem::AlignSelf::center));
     playbackFlex.performLayout(playbackBounds_);
 
-    // juce::FlexBox volumeFlex;
-    // volumeFlex.flexDirection = juce::FlexBox::Direction::row;
-    // volumeFlex.justifyContent = juce::FlexBox::JustifyContent::spaceBetween;
-    // volumeFlex.alignItems = juce::FlexBox::AlignItems::center;
-    // volumeFlex.items.add(juce::FlexItem(volumeSlider_).withFlex(1.0f));
-    // volumeFlex.performLayout(volumeBounds_);
+    juce::FlexBox volumeFlex;
+    volumeFlex.flexDirection = juce::FlexBox::Direction::row;
+    volumeFlex.justifyContent = juce::FlexBox::JustifyContent::flexStart;
+    volumeFlex.alignItems = juce::FlexBox::AlignItems::stretch;
+    volumeFlex.items.add(
+        juce::FlexItem(volumeSlider_).withFlex(1.0f).withMaxWidth(kButtonSz));
+    volumeFlex.performLayout(volumeBounds_);
   }
 
  private:
   RoundImageButton playButton_, pauseButton_, stopButton_;
   ColouredSlider playbackSlider_, volumeSlider_;
-  //   SpeakerImageComponent speakerIcon_;
+  SpeakerImageComponent speakerIcon_;
   juce::Rectangle<int> playbackBounds_, volumeBounds_;
 };
