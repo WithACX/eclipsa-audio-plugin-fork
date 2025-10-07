@@ -1,6 +1,7 @@
 #include "IAMFPlaybackEngine.h"
 
 #include "logger/logger.h"
+#include "processors/file_output/iamf_export_utils/IAMFFileReader.h"
 
 IAMFPlaybackEngine::IAMFPlaybackEngine(const std::filesystem::path iamfPath)
     : decoderSource_(std::make_unique<IAMFDecoderSource>(iamfPath)),
@@ -96,6 +97,15 @@ void IAMFPlaybackEngine::stop() {
 
 void IAMFPlaybackEngine::setVolume(const float volume) {
   sourcePlayer_.setGain(volume);
+}
+
+void IAMFPlaybackEngine::seek(const float position) {
+  IAMFFileReader::StreamData streamData =
+      decoderSource_->getDecoder().getStreamData();
+  if (position < 0.0f || position > 1.0f || streamData.numFrames == 0) {
+    return;
+  }
+  decoderSource_->getDecoder().seekFrame(position * streamData.numFrames);
 }
 
 IAMFPlaybackEngine::~IAMFPlaybackEngine() {

@@ -29,6 +29,11 @@ class AudioFilePlayer : public juce::Component, private juce::Timer {
     playbackSlider_.setValue(0.0);
     playbackSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
     playbackSlider_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+    playbackSlider_.onValueChange = [this]() {
+      std::cout << "Hit slider change: " << playbackSlider_.getValue()
+                << std::endl;
+      playbackEngine_->seek((float)playbackSlider_.getValue());
+    };
     addAndMakeVisible(playbackSlider_);
 
     volumeSlider_.setRange(0, 1);
@@ -97,9 +102,7 @@ class AudioFilePlayer : public juce::Component, private juce::Timer {
 
   void timerCallback() override {
     update();
-    if (playbackEngine_) {
-      playbackEngine_->setVolume(volumeSlider_.getValue());
-    }
+    playbackEngine_->setVolume(volumeSlider_.getValue());
   }
 
  private:
