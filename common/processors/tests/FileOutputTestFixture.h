@@ -147,6 +147,57 @@ class FileOutputTests : public ::testing::Test {
     fio_proc.setNonRealtime(false);
   }
 
+  void createIAMFFile30SecStereo(const std::filesystem::path& path) {
+    const Layout kLayout = Speakers::kStereo;
+    const juce::Uuid kAE = addAudioElement(kLayout, "Stereo Sine");
+    const juce::Uuid kMP = addMixPresentation("Stereo Mix");
+    addAudioElementsToMix(kMP, {kAE});
+
+    setTestExportOpts({.codec = AudioCodec::LPCM, .sampleRate = kSampleRate});
+
+    auto fileExport = fileExportRepository.get();
+    fileExport.setExportFile(path.string());
+    fileExportRepository.update(fileExport);
+
+    // Prepare processor for rendering
+    fio_proc.prepareToPlay(kSampleRate, kSamplesPerFrame);
+    fio_proc.setNonRealtime(true);
+
+    // Configure for 30 seconds of audio
+    const int totalFrames = 30 * kSampleRate;
+    const int numBlocks = totalFrames / kSamplesPerFrame;
+
+    // Create buffer for stereo audio
+    const int totalChannels = kLayout.getNumChannels();
+    juce::AudioBuffer<float> audioBuffer(totalChannels, kSamplesPerFrame);
+    juce::MidiBuffer midiBuffer;
+
+    // Process audio in blocks
+    for (int block = 0; block < numBlocks; ++block) {
+      // Clear the buffer
+      audioBuffer.clear();
+
+      // Generate 440Hz sine wave
+      juce::AudioBuffer<float> sineWave(1, kSamplesPerFrame);
+      float* channelData = sineWave.getWritePointer(0);
+      for (int i = 0; i < kSamplesPerFrame; ++i) {
+        channelData[i] =
+            sampleSine(440.0f, block * kSamplesPerFrame + i, kSampleRate);
+      }
+
+      // Copy to all channels
+      for (int channel = 0; channel < totalChannels; ++channel) {
+        audioBuffer.copyFrom(channel, 0, sineWave, 0, 0, kSamplesPerFrame);
+      }
+
+      // Process the buffer
+      fio_proc.processBlock(audioBuffer, midiBuffer);
+    }
+
+    // Clean up
+    fio_proc.setNonRealtime(false);
+  }
+
  protected:
   FileOutputTests()
       : ex(fileExportRepository.get()),

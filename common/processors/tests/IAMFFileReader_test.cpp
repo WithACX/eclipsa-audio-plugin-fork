@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 #include <juce_audio_formats/juce_audio_formats.h>
 
+#include <chrono>
 #include <filesystem>
 #include <memory>
 
@@ -261,4 +262,46 @@ TEST_F(IAMFFileReaderTest, seek_invalid) {
   }
   // Seek to invalid frame index
   ASSERT_FALSE(reader.seekFrame(1000));
+}
+
+// Benchmark opening a file and seeking to the end
+TEST_F(IAMFFileReaderTest, benchmark_open_and_seek_to_end) {
+  createIAMFFile30SecStereo(kReferenceFilePath);
+
+  // Start timing for file open
+  auto openStart = std::chrono::high_resolution_clock::now();
+  IAMFFileReader reader(kReferenceFilePath);
+  auto openEnd = std::chrono::high_resolution_clock::now();
+
+  const IAMFFileReader::StreamData kSData = reader.getStreamData();
+  EXPECT_TRUE(kSData.valid);
+
+  size_t lastFrameIdx = kSData.numFrames - 1;
+
+  // Start timing for seek operation
+  auto seekStart = std::chrono::high_resolution_clock::now();
+  bool seekSuccess = reader.seekFrame(lastFrameIdx);
+  auto seekEnd = std::chrono::high_resolution_clock::now();
+
+  ASSERT_TRUE(seekSuccess);
+
+  // Calculate durations
+  auto openDuration = std::chrono::duration_cast<std::chrono::microseconds>(
+      openEnd - openStart);
+  auto seekDuration = std::chrono::duration_cast<std::chrono::microseconds>(
+      seekEnd - seekStart);
+
+  // Print benchmark results
+  std::cout << "Benchmark Results:\n";
+  std::cout << "  File: " << kReferenceFilePath << "\n";
+  std::cout << "  Total frames: " << kSData.numFrames << "\n";
+  std::cout << "  Open time: " << openDuration.count() << " µs\n";
+  std::cout << "  Seek to end time: " << seekDuration.count() << " µs\n";
+  std::cout << "  Total time: " << (openDuration + seekDuration).count()
+            << " µs\n";
+
+  // Optional: Verify we can read from the last frame
+  juce::AudioBuffer<float> buffer(kSData.numChannels, kSData.frameSize);
+  size_t samplesRead = reader.readFrame(buffer);
+  EXPECT_GT(samplesRead, 0);
 }
