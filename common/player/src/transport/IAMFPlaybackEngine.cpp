@@ -100,12 +100,20 @@ void IAMFPlaybackEngine::setVolume(const float volume) {
 }
 
 void IAMFPlaybackEngine::seek(const float position) {
+  const bool kWasPlaying = decoderSource_->isPlaying();
+  if (kWasPlaying) {
+    decoderSource_->stop();
+    sourcePlayer_.setSource(nullptr);
+    deviceManager_.removeAudioCallback(&sourcePlayer_);
+  }
   IAMFFileReader::StreamData streamData =
       decoderSource_->getDecoder().getStreamData();
-  if (position < 0.0f || position > 1.0f || streamData.numFrames == 0) {
-    return;
+  decoderSource_->seek(position * streamData.numFrames);
+  if (kWasPlaying) {
+    sourcePlayer_.setSource(decoderSource_.get());
+    deviceManager_.addAudioCallback(&sourcePlayer_);
+    decoderSource_->play();
   }
-  decoderSource_->getDecoder().seekFrame(position * streamData.numFrames);
 }
 
 IAMFPlaybackEngine::~IAMFPlaybackEngine() {

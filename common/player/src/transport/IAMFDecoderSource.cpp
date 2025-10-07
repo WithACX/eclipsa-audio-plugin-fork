@@ -5,25 +5,54 @@ IAMFDecoderSource::IAMFDecoderSource(const std::filesystem::path iamfPath)
 
 IAMFFileReader& IAMFDecoderSource::getDecoder() { return decoder_; }
 
-void IAMFDecoderSource::play() { isPlaying_ = true; }
+void IAMFDecoderSource::play() {
+  const juce::SpinLock::ScopedLockType lock(decoderLock_);
+  isPlaying_ = true;
+}
 
-void IAMFDecoderSource::pause() { isPlaying_ = false; }
+void IAMFDecoderSource::pause() {
+  const juce::SpinLock::ScopedLockType lock(decoderLock_);
+  isPlaying_ = false;
+}
 
 void IAMFDecoderSource::stop() {
+  const juce::SpinLock::ScopedLockType lock(decoderLock_);
   isPlaying_ = false;
   decoder_.seekFrame(0);
 }
 
+bool IAMFDecoderSource::seek(size_t frameIndex) {
+  const juce::SpinLock::ScopedLockType lock(decoderLock_);
+  if (!decoder_.seekFrame(frameIndex)) {
+    return false;
+  }
+  clearFifoBuffer();
+  return true;
+}
+
+void IAMFDecoderSource::clearFifoBuffer() {
+  if (fifo_ != nullptr) {
+    fifo_ = std::make_unique<AudioFIFO>(kFifoSize, streamData_.numChannels);
+    buffer_.clear();
+  }
+}
+
 void IAMFDecoderSource::prepareToPlay(int, double) {
+  const juce::SpinLock::ScopedLockType lock(decoderLock_);
   streamData_ = decoder_.getStreamData();
   buffer_.setSize(streamData_.numChannels, streamData_.frameSize);
   fifo_ = std::make_unique<AudioFIFO>(kFifoSize, streamData_.numChannels);
 }
 
-void IAMFDecoderSource::releaseResources() { fifo_.reset(); }
+void IAMFDecoderSource::releaseResources() {
+  const juce::SpinLock::ScopedLockType lock(decoderLock_);
+  fifo_.reset();
+}
 
 void IAMFDecoderSource::getNextAudioBlock(
     const juce::AudioSourceChannelInfo& info) {
+  const juce::SpinLock::ScopedLockType lock(decoderLock_);
+
   if (!isPlaying_) {
     info.clearActiveBufferRegion();
     return;

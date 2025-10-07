@@ -11,6 +11,7 @@
 /**
  * @brief Audio source wrapper for the IAMF decoder. Populates frames on demand.
  * Includes an internal FIFO buffer to handle varying sample request sizes.
+ * Thread-safe for concurrent access from UI and audio threads.
  *
  */
 class IAMFDecoderSource : public juce::AudioSource {
@@ -22,6 +23,7 @@ class IAMFDecoderSource : public juce::AudioSource {
   void play();
   void pause();
   void stop();
+  bool seek(size_t frameIndex);
 
   void prepareToPlay(int, double) override;
 
@@ -29,7 +31,14 @@ class IAMFDecoderSource : public juce::AudioSource {
 
   void getNextAudioBlock(const juce::AudioSourceChannelInfo& info) override;
 
+  bool isPlaying() const {
+    const juce::SpinLock::ScopedLockType lock(decoderLock_);
+    return isPlaying_;
+  }
+
  private:
+  void clearFifoBuffer();
+
   IAMFFileReader decoder_;
   IAMFFileReader::StreamData streamData_;
   juce::AudioBuffer<float> buffer_;
@@ -37,4 +46,5 @@ class IAMFDecoderSource : public juce::AudioSource {
   static constexpr size_t kFifoSize = 16384;
   std::unique_ptr<AudioFIFO> fifo_;
   bool isPlaying_ = false;
+  juce::SpinLock decoderLock_;
 };
