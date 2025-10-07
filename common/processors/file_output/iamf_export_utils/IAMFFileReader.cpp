@@ -201,6 +201,7 @@ std::vector<IAMFFileReader::IdxEntry> IAMFFileReader::buildFrameIndices(
     frameIdxs.push_back({pos});
     frameCount++;
   }
+  streamData_.numFrames = frameCount;
 
   fileStream->clear();
   fileStream->seekg(0, std::ios::beg);

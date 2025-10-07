@@ -94,6 +94,10 @@ void IAMFPlaybackEngine::stop() {
   }
 }
 
+void IAMFPlaybackEngine::setVolume(const float volume) {
+  sourcePlayer_.setGain(volume);
+}
+
 IAMFPlaybackEngine::~IAMFPlaybackEngine() {
   // Stop playback and clean up
   stop();

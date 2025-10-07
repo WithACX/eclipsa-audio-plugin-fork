@@ -9,8 +9,9 @@
 #include "components/src/Icons.h"
 #include "components/src/RoundImageButton.h"
 #include "player/src/transport/IAMFPlaybackEngine.h"
+#include "processors/file_output/iamf_export_utils/IAMFFileReader.h"
 
-class AudioFilePlayer : public juce::Component {
+class AudioFilePlayer : public juce::Component, private juce::Timer {
  public:
   AudioFilePlayer()
       : playButton_("Play", IconStore::getInstance().getPlayIcon()),
@@ -40,6 +41,9 @@ class AudioFilePlayer : public juce::Component {
     addAndMakeVisible(pauseButton_);
     addAndMakeVisible(stopButton_);
     addAndMakeVisible(timeLabel_);
+
+    update();
+    startTimerHz(10);  // Update UI at 10 Hz
   }
 
   void paint(juce::Graphics& g) override {
@@ -69,28 +73,32 @@ class AudioFilePlayer : public juce::Component {
 
   void update() {
     if (playbackEngine_) {
-      const auto streamData = playbackEngine_->getStreamData();
-      const auto currentPos =
-          streamData.currentFrameIdx *
-          (streamData.frameSize / static_cast<double>(streamData.sampleRate));
-      const auto duration =
-          streamData.numFrames *
-          (streamData.frameSize / static_cast<double>(streamData.sampleRate));
-      if (duration > 0) {
-        const float position = static_cast<float>(currentPos) / duration;
-        playbackSlider_.setValue(position, juce::dontSendNotification);
+      const IAMFFileReader::StreamData kData = playbackEngine_->getStreamData();
+      const float kDuration_s =
+          kData.numFrames * kData.frameSize / (float)kData.sampleRate;
+      const float kPosition_s =
+          kData.currentFrameIdx * kData.frameSize / (float)kData.sampleRate;
 
-        const int currentMins = static_cast<int>(currentPos) / 60;
-        const int currentSecs = static_cast<int>(currentPos) % 60;
-        const int durationMins = static_cast<int>(duration) / 60;
-        const int durationSecs = static_cast<int>(duration) % 60;
-        timeLabel_.setText(
-            juce::String::formatted("%02d:%02d / %02d:%02d", currentMins,
-                                    currentSecs, durationMins, durationSecs),
-            juce::dontSendNotification);
-      } else {
-        timeLabel_.setText("00:00 / 00:00", juce::dontSendNotification);
-      }
+      const int durationMins = (int)(kDuration_s / 60);
+      const int durationSecs = (int)(kDuration_s) % 60;
+      const int currentMins = (int)(kPosition_s / 60);
+      const int currentSecs = (int)(kPosition_s) % 60;
+      timeLabel_.setText(
+          juce::String::formatted("%02d:%02d / %02d:%02d", currentMins,
+                                  currentSecs, durationMins, durationSecs),
+          juce::dontSendNotification);
+      playbackSlider_.setValue(
+          kDuration_s > 0.0f ? (kPosition_s / kDuration_s) : 0.0f,
+          juce::dontSendNotification);
+    } else {
+      timeLabel_.setText("00:00 / 00:00", juce::dontSendNotification);
+    }
+  }
+
+  void timerCallback() override {
+    update();
+    if (playbackEngine_) {
+      playbackEngine_->setVolume(volumeSlider_.getValue());
     }
   }
 
