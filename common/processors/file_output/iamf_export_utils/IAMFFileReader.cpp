@@ -1,10 +1,12 @@
 #include "IAMFFileReader.h"
 
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <memory>
 
 #include "iamf_tools_api_types.h"
@@ -218,6 +220,10 @@ std::vector<IAMFFileReader::IdxEntry> IAMFFileReader::buildFrameIndices(
 }
 
 bool IAMFFileReader::seekFrame(const size_t frameIdx) {
+  auto start = std::chrono::high_resolution_clock::now();
+  std::cout << "    [FileReader] seekFrame to " << frameIdx 
+            << " (current: " << streamData_.currentFrameIdx << ")" << std::endl;
+  
   if (frameIdx >= frameIdxs_.size()) {
     LOG_WARNING(0, "IAMFFileReader: Frame index out of range");
     return false;
@@ -225,9 +231,16 @@ bool IAMFFileReader::seekFrame(const size_t frameIdx) {
 
   // If seeking backward, reset decoder and file position, then advance
   if (frameIdx < streamData_.currentFrameIdx) {
+    std::cout << "    [FileReader] Backward seek detected, resetting decoder..." << std::endl;
+    auto reset_start = std::chrono::high_resolution_clock::now();
+    
     // Reset file position
     fileStream_->clear();
     fileStream_->seekg(0, std::ios::beg);
+    auto after_file_reset = std::chrono::high_resolution_clock::now();
+    auto file_reset_duration = std::chrono::duration_cast<std::chrono::microseconds>(
+        after_file_reset - reset_start).count();
+    std::cout << "    [FileReader] File reset took: " << file_reset_duration << " μs" << std::endl;
 
     // Recreate decoder
     iamfDecoder_ = iamf_tools::api::IamfDecoderFactory::Create(settings_);
@@ -235,6 +248,10 @@ bool IAMFFileReader::seekFrame(const size_t frameIdx) {
       LOG_ERROR(0, "IAMFFileReader: Failed to recreate decoder during seek");
       return false;
     }
+    auto after_decoder_create = std::chrono::high_resolution_clock::now();
+    auto decoder_create_duration = std::chrono::duration_cast<std::chrono::microseconds>(
+        after_decoder_create - after_file_reset).count();
+    std::cout << "    [FileReader] Decoder recreation took: " << decoder_create_duration << " μs" << std::endl;
 
     // Reparse stream data
     const StreamData kStreamData = parseStreamData(iamfDecoder_, fileStream_);
@@ -242,16 +259,32 @@ bool IAMFFileReader::seekFrame(const size_t frameIdx) {
       LOG_ERROR(0, "IAMFFileReader: Failed to reparse stream data during seek");
       return false;
     }
+    auto after_reparse = std::chrono::high_resolution_clock::now();
+    auto reparse_duration = std::chrono::duration_cast<std::chrono::microseconds>(
+        after_reparse - after_decoder_create).count();
+    std::cout << "    [FileReader] Stream data reparse took: " << reparse_duration << " μs" << std::endl;
 
     streamData_.currentFrameIdx = 0;
   }
 
   // Advance to the requested frame
+  auto advance_start = std::chrono::high_resolution_clock::now();
+  size_t frames_advanced = 0;
   while (streamData_.currentFrameIdx < frameIdx) {
     if (parseFrame() == 0) {
       return false;
     }
+    frames_advanced++;
   }
+  auto after_advance = std::chrono::high_resolution_clock::now();
+  auto advance_duration = std::chrono::duration_cast<std::chrono::microseconds>(
+      after_advance - advance_start).count();
+  std::cout << "    [FileReader] Advanced " << frames_advanced 
+            << " frames in: " << advance_duration << " μs" << std::endl;
+  
+  auto total_duration = std::chrono::duration_cast<std::chrono::microseconds>(
+      after_advance - start).count();
+  std::cout << "    [FileReader] TOTAL seekFrame: " << total_duration << " μs" << std::endl;
 
   return true;
 }
