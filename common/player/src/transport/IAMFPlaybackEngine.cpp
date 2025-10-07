@@ -100,11 +100,14 @@ void IAMFPlaybackEngine::setVolume(const float volume) {
 }
 
 void IAMFPlaybackEngine::seek(const float position) {
+  decoderSource_->pause();
+  resampler_->flushBuffers();
   IAMFFileReader::StreamData streamData =
       decoderSource_->getDecoder().getStreamData();
   if (!decoderSource_->seek(position * streamData.numFrames)) {
     LOG_WARNING(0, "IAMFPlaybackEngine: Seek operation failed");
   }
+  decoderSource_->play();
 }
 
 IAMFPlaybackEngine::~IAMFPlaybackEngine() {
