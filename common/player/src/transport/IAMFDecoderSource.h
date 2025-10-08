@@ -39,11 +39,11 @@ class IAMFDecoderSource : public juce::AudioSource {
  private:
   void clearFifoBuffer();
 
+  static constexpr size_t kFifoSize = 16384;
+
   IAMFFileReader decoder_;
   IAMFFileReader::StreamData streamData_;
   juce::AudioBuffer<float> buffer_;
-
-  static constexpr size_t kFifoSize = 16384;
   std::unique_ptr<AudioFIFO> fifo_;
   bool isPlaying_ = false;
   juce::SpinLock decoderLock_;

@@ -58,13 +58,13 @@ void IAMFDecoderSource::getNextAudioBlock(
     return;
   }
 
-  const int samplesNeeded = info.numSamples;
-  int samplesRemaining = samplesNeeded;
+  const int kSamplesNeeded = info.numSamples;
+  int samplesRemaining = kSamplesNeeded;
 
   // First try to read from the FIFO
-  const int samplesAvailable = fifo_->getNumReady();
-  if (samplesAvailable > 0) {
-    const int samplesToRead = juce::jmin(samplesAvailable, samplesRemaining);
+  const int kSamplesAvailable = fifo_->getNumReady();
+  if (kSamplesAvailable > 0) {
+    const int samplesToRead = juce::jmin(kSamplesAvailable, samplesRemaining);
     fifo_->read(*info.buffer, info.startSample, samplesToRead);
     samplesRemaining -= samplesToRead;
   }
@@ -76,7 +76,7 @@ void IAMFDecoderSource::getNextAudioBlock(
       // No more samples available, zero-pad the rest
       for (int ch = 0; ch < info.buffer->getNumChannels(); ++ch) {
         info.buffer->clear(
-            ch, info.startSample + (samplesNeeded - samplesRemaining),
+            ch, info.startSample + (kSamplesNeeded - samplesRemaining),
             samplesRemaining);
       }
       break;
@@ -88,7 +88,7 @@ void IAMFDecoderSource::getNextAudioBlock(
     // Read what we need from the FIFO
     const int samplesToRead = juce::jmin((int)samplesRead, samplesRemaining);
     fifo_->read(*info.buffer,
-                info.startSample + (samplesNeeded - samplesRemaining),
+                info.startSample + (kSamplesNeeded - samplesRemaining),
                 samplesToRead);
     samplesRemaining -= samplesToRead;
   }
