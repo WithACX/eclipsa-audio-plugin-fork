@@ -32,7 +32,7 @@ bool IAMFDecoderSource::seek(size_t frameIndex) {
 
 void IAMFDecoderSource::clearFifoBuffer() {
   if (fifo_ != nullptr) {
-    fifo_ = std::make_unique<AudioFIFO>(kFifoSize, streamData_.numChannels);
+    fifo_ = std::make_unique<AudioFIFO>(kFifoSamples_, streamData_.numChannels);
     buffer_.clear();
   }
 }
@@ -41,7 +41,7 @@ void IAMFDecoderSource::prepareToPlay(int, double) {
   const juce::SpinLock::ScopedLockType lock(decoderLock_);
   streamData_ = decoder_.getStreamData();
   buffer_.setSize(streamData_.numChannels, streamData_.frameSize);
-  fifo_ = std::make_unique<AudioFIFO>(kFifoSize, streamData_.numChannels);
+  fifo_ = std::make_unique<AudioFIFO>(kFifoSamples_, streamData_.numChannels);
 }
 
 void IAMFDecoderSource::releaseResources() {

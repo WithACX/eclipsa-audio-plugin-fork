@@ -39,7 +39,8 @@ class IAMFDecoderSource : public juce::AudioSource {
  private:
   void clearFifoBuffer();
 
-  static constexpr size_t kFifoSize = 16384;
+  // 30 seconds at 48kHz
+  static constexpr size_t kFifoSamples_ = 30 * 48e3;
 
   IAMFFileReader decoder_;
   IAMFFileReader::StreamData streamData_;
