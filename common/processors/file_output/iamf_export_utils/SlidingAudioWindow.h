@@ -70,6 +70,7 @@ class SlidingAudioWindow {
 
     const unsigned kCapacity = capacity();
     const unsigned kNumChannels = out.getNumChannels();
+    const unsigned kNumPadSamples = kCapacity / 2;
 
     // Copy samples from middle pointer
     if (middle_ + kSamplesToRead <= kCapacity) {
@@ -92,20 +93,19 @@ class SlidingAudioWindow {
     // Advance middle pointer
     middle_ = (middle_ + kSamplesToRead) % kCapacity;
 
-    // Calculate how many samples are in the delay buffer
-    unsigned delayBufferSize;
+    // Advance start pointer to maintain exactly kNumPadSamples delay buffer
+    // The delay buffer should always contain kNumPadSamples when possible
+    unsigned currentDelayBufferSize;
     if (middle_ >= start_) {
-      delayBufferSize = middle_ - start_;
+      currentDelayBufferSize = middle_ - start_;
     } else {
-      delayBufferSize = kCapacity - start_ + middle_;
+      currentDelayBufferSize = kCapacity - start_ + middle_;
     }
 
-    const unsigned kNumPadSamples = kCapacity / 2;
-
-    // Advance start pointer if delay buffer exceeds padding requirement
-    // Only advance by the amount that exceeds kNumPadSamples
-    if (delayBufferSize > kNumPadSamples) {
-      unsigned excessSamples = delayBufferSize - kNumPadSamples;
+    // If delay buffer exceeds kNumPadSamples, advance start to maintain exactly
+    // kNumPadSamples
+    if (currentDelayBufferSize > kNumPadSamples) {
+      unsigned excessSamples = currentDelayBufferSize - kNumPadSamples;
       start_ = (start_ + excessSamples) % kCapacity;
     }
 
@@ -215,11 +215,35 @@ class SlidingAudioWindow {
 
   // Returns the number of samples available for writing in the circular buffer
   unsigned getAvailableWriteSamples() const {
+    const unsigned kCapacity = capacity();
+
+    // Find which pointer is furthest back from end
+    // Calculate circular distance from start to end
+    unsigned startToEnd;
     if (end_ >= start_) {
-      return capacity() - (end_ - start_) - 1;
+      startToEnd = end_ - start_;
     } else {
-      return start_ - end_ - 1;
+      startToEnd = kCapacity - start_ + end_;
     }
+
+    // Calculate circular distance from middle to end
+    unsigned middleToEnd;
+    if (end_ >= middle_) {
+      middleToEnd = end_ - middle_;
+    } else {
+      middleToEnd = kCapacity - middle_ + end_;
+    }
+
+    // Used space extends from whichever is further back
+    // If start is behind middle: used = startToEnd
+    // If middle is behind start: used = max(startToEnd, which includes middle)
+    unsigned usedSpace = std::max(startToEnd, middleToEnd);
+
+    if (usedSpace >= kCapacity) {
+      return 0;  // Buffer full
+    }
+
+    return kCapacity - usedSpace - 1;
   }
 
   // Total number of samples in the buffer

@@ -14,8 +14,7 @@ class IAMFBuffer {
     const unsigned kNumChannels = kStreamData.numChannels;
     const unsigned kSampleRate = kStreamData.sampleRate;
     const unsigned kFrameSize = kStreamData.frameSize;
-    const unsigned kNumSamples =
-        (paddingSeconds * kSampleRate / kFrameSize) * kFrameSize;
+    const unsigned kNumSamples = paddingSeconds * kSampleRate;
     slidingWindow_ = SlidingAudioWindow(kNumChannels, kNumSamples);
     decodeThread_ = std::thread(&IAMFBuffer::decodeTask, this);
     wakeDecodeTask();

@@ -20,6 +20,7 @@ void IAMFDecoderSource::stop() {
   isPlaying_ = false;
   if (buffer_) {
     buffer_->seek(0);
+    actualFrameCount_ = 0;
   }
 }
 
@@ -59,7 +60,6 @@ void IAMFDecoderSource::getNextAudioBlock(
     return;
   }
 
-  // Read directly from IAMFBuffer which is maintained by background thread
   actualFrameCount_ +=
       buffer_->readSamples(*info.buffer, info.startSample, info.numSamples) /
       streamData_.frameSize;
