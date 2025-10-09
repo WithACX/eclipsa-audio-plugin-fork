@@ -1,6 +1,7 @@
 #pragma once
 #include <condition_variable>
 #include <mutex>
+#include <stdexcept>
 
 #include "SlidingAudioWindow.h"
 #include "processors/file_output/iamf_export_utils/IAMFFileReader.h"
@@ -9,11 +10,13 @@ class IAMFBuffer {
  public:
   IAMFBuffer(const unsigned paddingSeconds, IAMFFileReader& decoder)
       : decoder_(decoder) {
-    const auto streamData = decoder_.getStreamData();
-    const unsigned numChannels = streamData.numChannels;
-    const unsigned sampleRate = streamData.sampleRate;
-    const unsigned numSamples = paddingSeconds * sampleRate;
-    slidingWindow_ = SlidingAudioWindow(numChannels, numSamples);
+    const auto kStreamData = decoder_.getStreamData();
+    const unsigned kNumChannels = kStreamData.numChannels;
+    const unsigned kSampleRate = kStreamData.sampleRate;
+    const unsigned kFrameSize = kStreamData.frameSize;
+    const unsigned kNumSamples =
+        (paddingSeconds * kSampleRate / kFrameSize) * kFrameSize;
+    slidingWindow_ = SlidingAudioWindow(kNumChannels, kNumSamples);
     decodeThread_ = std::thread(&IAMFBuffer::decodeTask, this);
     wakeDecodeTask();
   }
@@ -26,7 +29,15 @@ class IAMFBuffer {
     }
   }
 
-  bool isReady() { return slidingWindow_.size() > 0; }
+  bool isReady() {
+    std::unique_lock<std::mutex>(stateLock_);
+    return slidingWindow_.size() > 0;
+  }
+
+  size_t availableSamples() const {
+    std::unique_lock<std::mutex>(stateLock_);
+    return slidingWindow_.size();
+  }
 
   size_t readSamples(juce::AudioBuffer<float>& out, const unsigned startSample,
                      const unsigned numSamples) {
@@ -60,9 +71,10 @@ class IAMFBuffer {
 
       if (stopThread_) return;
 
-      // If the sliding window has space, decode more samples into it.
+      // If the sliding window has space for a frame, decode more samples into
+      // it.
       unsigned numWriteAvailable = slidingWindow_.getAvailableWriteSamples();
-      while (numWriteAvailable > 0) {
+      while (numWriteAvailable >= decoder_.getStreamData().frameSize) {
         juce::AudioBuffer<float> tempBuffer(
             decoder_.getStreamData().numChannels,
             decoder_.getStreamData().frameSize);
@@ -73,8 +85,11 @@ class IAMFBuffer {
 
         const bool kWriteSuccess =
             slidingWindow_.writeSamples(kSamplesDecoded, tempBuffer);
-        std::cout << "Write of " << kSamplesDecoded << " samples to buffer"
-                  << " returned status " << kWriteSuccess << std::endl;
+        if (!kWriteSuccess) {
+          throw std::runtime_error(
+              "Write to buffer failed when there was available room!");
+        }
+        numWriteAvailable -= kSamplesDecoded;
       }
     }
   }
