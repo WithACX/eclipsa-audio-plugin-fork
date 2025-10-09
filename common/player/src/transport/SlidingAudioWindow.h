@@ -11,13 +11,25 @@ class SlidingAudioWindow {
         start_(0),
         middle_(0),
         end_(0),
-        absSamplePos_(0) {}
+        absSamplePos_(0),
+        bufferZone_(numSamples) {}
 
   bool writeSamples(const unsigned numSamples,
-                    const juce::AudioBuffer<float>& in) {}
+                    const juce::AudioBuffer<float>& in) {
+    // Check if the circular buffer has room to write the samples.
+    // If so write them and return true.
+    // Otherwise return false.
+  }
 
   unsigned readSamples(const unsigned numSamples,
-                       juce::AudioBuffer<float>& out) {}
+                       juce::AudioBuffer<float>& out) {
+    // Check if we can return the required samples. Samples are read from the
+    // middle + numSamples.
+    // Reading samples advances:
+    // 1. The middle pointer.
+    // 2. The start pointer if the buffer zone has been filled.
+    // Return the number of samples read.
+  }
 
   void setAbsPos(const unsigned newAbsSamplePos) {
     // There are 3 possible cases here:
@@ -45,4 +57,5 @@ class SlidingAudioWindow {
   // Position pointers
   unsigned start_, end_, middle_;
   unsigned absSamplePos_;
+  unsigned bufferZone_;
 };
