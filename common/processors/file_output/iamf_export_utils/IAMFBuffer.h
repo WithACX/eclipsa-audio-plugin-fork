@@ -30,7 +30,7 @@ class IAMFBuffer {
   }
 
   bool isReady() {
-    std::unique_lock<std::mutex>(stateLock_);
+    std::unique_lock<std::mutex> lock(stateLock_);
     return slidingWindow_.size() > 0;
   }
 
@@ -56,10 +56,13 @@ class IAMFBuffer {
   }
 
   bool seek(const size_t absSampleIdx) {
-    // Set the absolute position of the sliding window.
-    slidingWindow_.setAbsPos(absSampleIdx);
+    stateLock_.lock();
+    const bool kPosInBuff = slidingWindow_.setAbsPos(absSampleIdx);
+    stateLock_.unlock();
 
     wakeDecodeTask();
+
+    return kPosInBuff;
   }
 
   void wakeDecodeTask() { cv_.notify_one(); }
@@ -67,7 +70,11 @@ class IAMFBuffer {
   void decodeTask() {
     while (!stopThread_) {
       std::unique_lock<std::mutex> lock(stateLock_);
-      cv_.wait(lock, [this] { return !stopThread_.load(); });
+      cv_.wait(lock, [this] {
+        return stopThread_.load() ||
+               slidingWindow_.getAvailableWriteSamples() >=
+                   decoder_.getStreamData().frameSize;
+      });
 
       if (stopThread_) return;
 

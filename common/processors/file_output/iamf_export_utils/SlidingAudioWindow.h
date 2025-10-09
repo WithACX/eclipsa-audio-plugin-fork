@@ -115,12 +115,99 @@ class SlidingAudioWindow {
     return kSamplesToRead;
   }
 
-  void setAbsPos(const unsigned newAbsSamplePos) {
-    // Reset all pointers and set the absolute position
-    start_ = 0;
-    middle_ = 0;
-    end_ = 0;
+  bool setAbsPos(const unsigned newAbsSamplePos) {
+    const unsigned kCapacity = capacity();
+
+    // Calculate delay buffer size (samples from start to middle)
+    unsigned delayBufferSize;
+    if (middle_ >= start_) {
+      delayBufferSize = middle_ - start_;
+    } else {
+      delayBufferSize = kCapacity - start_ + middle_;
+    }
+
+    // Calculate available samples (samples from middle to end)
+    unsigned availableSamples;
+    if (end_ >= middle_) {
+      availableSamples = end_ - middle_;
+    } else {
+      availableSamples = kCapacity - middle_ + end_;
+    }
+
+    // The buffer represents samples in range [absSamplePos_ - delayBufferSize,
+    // absSamplePos_ + availableSamples)
+    const size_t minValidPos = absSamplePos_ - delayBufferSize;
+    const size_t maxValidPos = absSamplePos_ + availableSamples;
+
+    if (newAbsSamplePos >= minValidPos && newAbsSamplePos < maxValidPos) {
+      // New position is within the buffered range
+
+      if (newAbsSamplePos < absSamplePos_) {
+        // Seeking backward within the delay buffer
+        const unsigned backwardOffset = absSamplePos_ - newAbsSamplePos;
+
+        // Move middle pointer backward
+        if (middle_ >= backwardOffset) {
+          middle_ -= backwardOffset;
+        } else {
+          middle_ = kCapacity - (backwardOffset - middle_);
+        }
+
+        // Clear samples between old middle and new middle (going backward, so
+        // clear forward region) Actually, no clearing needed when going
+        // backward - we're just repositioning
+
+      } else if (newAbsSamplePos > absSamplePos_) {
+        // Seeking forward within the available buffer
+        const unsigned forwardOffset = newAbsSamplePos - absSamplePos_;
+
+        // Clear samples from old middle to new middle
+        unsigned clearStart = middle_;
+        unsigned clearCount = forwardOffset;
+
+        if (clearStart + clearCount <= kCapacity) {
+          // No wrap-around
+          for (unsigned ch = 0; ch < buffer_.getNumChannels(); ++ch) {
+            buffer_.clear(ch, clearStart, clearCount);
+          }
+        } else {
+          // Wrap-around
+          unsigned firstChunkSize = kCapacity - clearStart;
+          unsigned secondChunkSize = clearCount - firstChunkSize;
+
+          for (unsigned ch = 0; ch < buffer_.getNumChannels(); ++ch) {
+            buffer_.clear(ch, clearStart, firstChunkSize);
+            buffer_.clear(ch, 0, secondChunkSize);
+          }
+        }
+
+        // Move middle pointer forward
+        middle_ = (middle_ + forwardOffset) % kCapacity;
+
+        // Adjust start pointer to maintain delay buffer constraint
+        unsigned newDelayBufferSize;
+        if (middle_ >= start_) {
+          newDelayBufferSize = middle_ - start_;
+        } else {
+          newDelayBufferSize = kCapacity - start_ + middle_;
+        }
+
+        const unsigned kNumPadSamples = kCapacity / 2;
+        if (newDelayBufferSize > kNumPadSamples) {
+          unsigned excessSamples = newDelayBufferSize - kNumPadSamples;
+          start_ = (start_ + excessSamples) % kCapacity;
+        }
+      }
+      // If newAbsSamplePos == absSamplePos_, no changes needed
+
+    } else {
+      // New position is outside buffered range - reset everything
+      buffer_.clear();
+      start_ = middle_ = end_ = 0;
+    }
+
     absSamplePos_ = newAbsSamplePos;
+    return true;
   }
 
   unsigned capacity() const { return buffer_.getNumSamples(); }
@@ -150,5 +237,5 @@ class SlidingAudioWindow {
   // The absolute sample count. While start end and middle pointers are
   // relative, this variable does accounting for the number of samples read out
   // via the middle pointer.
-  unsigned absSamplePos_;
+  size_t absSamplePos_;
 };
