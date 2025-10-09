@@ -20,7 +20,7 @@ class AudioFilePlayer : public juce::Component, private juce::Timer {
         timeLabel_("timeLabel", "00:00 / 00:00"),
         // Debug: Hardcoding this during testing
         playbackEngine_(std::make_unique<IAMFPlaybackEngine>(
-            "/Users/joelm/Desktop/FIOTests/ReferenceIAMF.iamf")) {
+            "/Users/joelm/Desktop/FIOTests/Reference2x2.wav.iamf")) {
     playButton_.onClick = [this]() { playbackEngine_->play(); };
     pauseButton_.onClick = [this]() { playbackEngine_->pause(); };
     stopButton_.onClick = [this]() { playbackEngine_->stop(); };

@@ -69,7 +69,7 @@ class SlidingAudioWindow {
     }
 
     const unsigned kCapacity = capacity();
-    const unsigned kNumChannels = buffer_.getNumChannels();
+    const unsigned kNumChannels = out.getNumChannels();
 
     // Copy samples from middle pointer
     if (middle_ + kSamplesToRead <= kCapacity) {

@@ -35,7 +35,7 @@ void IAMFDecoderSource::prepareToPlay(int, double) {
   const juce::SpinLock::ScopedLockType lock(stateLock_);
 
   // Create IAMFBuffer which will start background thread for buffering
-  buffer_ = std::make_unique<IAMFBuffer>(15, decoder_);
+  buffer_ = std::make_unique<IAMFBuffer>(3, decoder_);
 
   // Wait for buffer to be ready before starting playback
   // This ensures we have enough buffered audio
