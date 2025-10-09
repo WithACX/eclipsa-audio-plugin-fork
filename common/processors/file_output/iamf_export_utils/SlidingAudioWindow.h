@@ -204,6 +204,7 @@ class SlidingAudioWindow {
       // New position is outside buffered range - reset everything
       buffer_.clear();
       start_ = middle_ = end_ = 0;
+      return false;
     }
 
     absSamplePos_ = newAbsSamplePos;
