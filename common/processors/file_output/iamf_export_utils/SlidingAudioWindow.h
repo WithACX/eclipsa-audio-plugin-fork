@@ -7,7 +7,7 @@ class SlidingAudioWindow {
       : buffer_(0, 0), start_(0), middle_(0), end_(0), absSamplePos_(0) {}
 
   SlidingAudioWindow(const unsigned numChannels, const unsigned numPadSamples)
-      : buffer_(numChannels, numPadSamples * 2),
+      : buffer_(numChannels, numPadSamples * 2 + 1),
         start_(0),
         middle_(0),
         end_(0),

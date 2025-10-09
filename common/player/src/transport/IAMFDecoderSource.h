@@ -5,7 +5,7 @@
 
 #include <memory>
 
-#include "IAMFBuffer.h"
+#include "processors/file_output/iamf_export_utils/IAMFBuffer.h"
 #include "processors/file_output/iamf_export_utils/IAMFFileReader.h"
 
 /**
