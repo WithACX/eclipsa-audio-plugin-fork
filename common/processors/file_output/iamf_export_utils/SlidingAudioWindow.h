@@ -102,9 +102,11 @@ class SlidingAudioWindow {
 
     const unsigned kNumPadSamples = kCapacity / 2;
 
-    // Advance start pointer if delay buffer is filled
-    if (delayBufferSize >= kNumPadSamples) {
-      start_ = (start_ + kSamplesToRead) % kCapacity;
+    // Advance start pointer if delay buffer exceeds padding requirement
+    // Only advance by the amount that exceeds kNumPadSamples
+    if (delayBufferSize > kNumPadSamples) {
+      unsigned excessSamples = delayBufferSize - kNumPadSamples;
+      start_ = (start_ + excessSamples) % kCapacity;
     }
 
     // Update absolute sample position
@@ -133,7 +135,13 @@ class SlidingAudioWindow {
   }
 
   // Total number of samples in the buffer
-  unsigned size() const { return end_ - start_; }
+  unsigned size() const {
+    if (end_ >= start_) {
+      return end_ - start_;
+    } else {
+      return capacity() - start_ + end_;
+    }
+  }
 
  private:
   juce::AudioBuffer<float> buffer_;
