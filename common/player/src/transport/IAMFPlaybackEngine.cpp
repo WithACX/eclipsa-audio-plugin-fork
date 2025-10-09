@@ -7,8 +7,7 @@ IAMFPlaybackEngine::IAMFPlaybackEngine(const std::filesystem::path iamfPath)
     : decoderSource_(std::make_unique<IAMFDecoderSource>(iamfPath)),
       resampler_(nullptr) {
   // Attempt to configure playback based on the file's properties
-  IAMFFileReader::StreamData streamData =
-      decoderSource_->getDecoder().getStreamData();
+  IAMFFileReader::StreamData streamData = decoderSource_->getStreamData();
   auto frameSize = streamData.frameSize;
   auto numChannels = streamData.numChannels;
   auto sampleRate = streamData.sampleRate;
@@ -72,7 +71,7 @@ bool IAMFPlaybackEngine::configurePlaybackDevice(const unsigned sampleRate,
 
 IAMFFileReader::StreamData IAMFPlaybackEngine::getStreamData() const {
   if (decoderSource_) {
-    return decoderSource_->getDecoder().getStreamData();
+    return decoderSource_->getStreamData();
   }
   return {};
 }
@@ -102,8 +101,7 @@ void IAMFPlaybackEngine::setVolume(const float volume) {
 void IAMFPlaybackEngine::seek(const float position) {
   decoderSource_->pause();
   resampler_->flushBuffers();
-  IAMFFileReader::StreamData streamData =
-      decoderSource_->getDecoder().getStreamData();
+  IAMFFileReader::StreamData streamData = decoderSource_->getStreamData();
   if (!decoderSource_->seek(position * streamData.numFrames)) {
     LOG_WARNING(0, "IAMFPlaybackEngine: Seek operation failed");
   }

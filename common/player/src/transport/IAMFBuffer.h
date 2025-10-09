@@ -26,20 +26,25 @@ class IAMFBuffer {
     }
   }
 
-  size_t readSamples(const unsigned numSamples, juce::AudioBuffer<float>& out) {
-    const size_t kSamplesRead = slidingWindow_.readSamples(numSamples, out);
+  bool isReady() { return slidingWindow_.size() > 0; }
+
+  size_t readSamples(juce::AudioBuffer<float>& out, const unsigned startSample,
+                     const unsigned numSamples) {
+    stateLock_.lock();
+    const size_t kSamplesRead =
+        slidingWindow_.readSamples(startSample, numSamples, out);
 
     // Zero-pad if necessary.
     if (kSamplesRead < numSamples) {
       out.clear(kSamplesRead, numSamples - kSamplesRead);
     }
-
+    stateLock_.unlock();
     wakeDecodeTask();
 
     return kSamplesRead;
   }
 
-  void seek(const size_t absSampleIdx) {
+  bool seek(const size_t absSampleIdx) {
     // Set the absolute position of the sliding window.
     slidingWindow_.setAbsPos(absSampleIdx);
 
@@ -59,13 +64,17 @@ class IAMFBuffer {
       unsigned numWriteAvailable = slidingWindow_.getAvailableWriteSamples();
       while (numWriteAvailable > 0) {
         juce::AudioBuffer<float> tempBuffer(
-            decoder_.getStreamData().numChannels, numWriteAvailable);
+            decoder_.getStreamData().numChannels,
+            decoder_.getStreamData().frameSize);
         const size_t kSamplesDecoded = decoder_.readFrame(tempBuffer);
         if (kSamplesDecoded == 0) {
           break;
         }
 
-        slidingWindow_.writeSamples(kSamplesDecoded, tempBuffer);
+        const bool kWriteSuccess =
+            slidingWindow_.writeSamples(kSamplesDecoded, tempBuffer);
+        std::cout << "Write of " << kSamplesDecoded << " samples to buffer"
+                  << " returned status " << kWriteSuccess << std::endl;
       }
     }
   }
