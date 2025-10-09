@@ -11,8 +11,7 @@ class SlidingAudioWindow {
         start_(0),
         middle_(0),
         end_(0),
-        absSamplePos_(0),
-        bufferZone_(numSamples) {}
+        absSamplePos_(0) {}
 
   bool writeSamples(const unsigned numSamples,
                     const juce::AudioBuffer<float>& in) {
@@ -56,6 +55,8 @@ class SlidingAudioWindow {
   juce::AudioBuffer<float> buffer_;
   // Position pointers
   unsigned start_, end_, middle_;
+  // The absolute sample count. While start end and middle pointers are
+  // relative, this variable does accounting for the number of samples read out
+  // via the middle pointer.
   unsigned absSamplePos_;
-  unsigned bufferZone_;
 };
