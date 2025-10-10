@@ -96,13 +96,79 @@ TEST(Window, full_rwr) {
 }
 
 // 4. Set absolute positions ahead valid.
-TEST(Window, pos_ahead) {}
+TEST(Window, pos_ahead) {
+  AudioWindow win(kNumCh, kPad);
+  const unsigned kSamps = 4;
+  for (int i = 0; i < kSamps; ++i) {
+    in.setSample(0, i, i);
+  }
+  ASSERT_TRUE(win.writeSamples(kSamps, in));
+
+  EXPECT_EQ(win.size(), kSamps);
+  EXPECT_EQ(win.capacity(), 4);
+  EXPECT_EQ(win.getAvailableWriteSamples(), 0);
+
+  // Read to half
+  ASSERT_EQ(win.readSamples(0, kPad, out), kPad);
+  for (int i = 0; i < kPad; ++i) {
+    ASSERT_EQ(out.getSample(0, i), i);
+  }
+
+  EXPECT_TRUE(win.setSamplePos(3));
+  EXPECT_EQ(win.getAvailableReadSamples(), 1);
+  EXPECT_EQ(win.readSamples(0, 1, out), 1);
+  EXPECT_EQ(out.getSample(0, 0), 3);
+}
 
 // 5. Set absolute position behind valid.
-TEST(Window, pos_behind) {}
+TEST(Window, pos_behind) {
+  AudioWindow win(kNumCh, kPad);
+  const unsigned kSamps = 4;
+  for (int i = 0; i < kSamps; ++i) {
+    in.setSample(0, i, i);
+  }
+  ASSERT_TRUE(win.writeSamples(kSamps, in));
+
+  EXPECT_EQ(win.size(), kSamps);
+  EXPECT_EQ(win.capacity(), 4);
+  EXPECT_EQ(win.getAvailableWriteSamples(), 0);
+
+  // Read to half
+  ASSERT_EQ(win.readSamples(0, kPad, out), kPad);
+  for (int i = 0; i < kPad; ++i) {
+    ASSERT_EQ(out.getSample(0, i), i);
+  }
+
+  EXPECT_TRUE(win.setSamplePos(0));
+  EXPECT_EQ(win.getAvailableReadSamples(), 4);
+  EXPECT_EQ(win.readSamples(0, 4, out), 4);
+  for (int i = 0; i < out.getNumSamples(); ++i) {
+    ASSERT_EQ(out.getSample(0, i), i);
+  }
+}
 
 // 6. Set absolute position ahead invalid.
-TEST(Window, pos_ahead_ob) {}
+TEST(Window, pos_ahead_ob) {
+  AudioWindow win(kNumCh, kPad);
+  const unsigned kSamps = 4;
+  for (int i = 0; i < kSamps; ++i) {
+    in.setSample(0, i, i);
+  }
+  ASSERT_TRUE(win.writeSamples(kSamps, in));
+
+  EXPECT_FALSE(win.setSamplePos(5));
+}
 
 // 7. Set absolute position behind invalid.
-TEST(Window, pos_behind_ob) {}
+TEST(Window, pos_behind_ob) {
+  AudioWindow win(kNumCh, kPad);
+  const unsigned kSamps = 4;
+  for (int i = 0; i < kSamps; ++i) {
+    in.setSample(0, i, i);
+  }
+  ASSERT_TRUE(win.writeSamples(kSamps, in));
+  ASSERT_EQ(win.readSamples(0, kSamps, out), kSamps);
+  ASSERT_TRUE(win.writeSamples(kSamps / 2, in));
+
+  EXPECT_FALSE(win.setSamplePos(0));
+}

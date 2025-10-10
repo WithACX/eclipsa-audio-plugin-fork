@@ -56,7 +56,7 @@ class IAMFBuffer {
 
   bool seek(const size_t absSampleIdx) {
     stateLock_.lock();
-    const bool kPosInBuff = slidingWindow_.setAbsPos(absSampleIdx);
+    const bool kPosInBuff = slidingWindow_.setSamplePos(absSampleIdx);
     stateLock_.unlock();
 
     wakeDecodeTask();

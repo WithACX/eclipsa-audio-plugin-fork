@@ -12,7 +12,7 @@ class AudioWindow {
         middle_(0),
         end_(0),
         count_(0),
-        absPos_(0) {}
+        samplePos_(0) {}
 
   // Modifiers
 
@@ -76,18 +76,40 @@ class AudioWindow {
       }
     }
 
-    // Advance middle pointer
     middle_ = (middle_ + kSamplesToRead) % kCapacity;
 
     updateDelay(kSamplesToRead);
 
-    // Update absolute sample position
-    absPos_ += kSamplesToRead;
+    samplePos_ += kSamplesToRead;
 
     return kSamplesToRead;
   }
 
-  bool setAbsPos(const unsigned newAbsSamplePos) {}
+  bool setSamplePos(const unsigned newSamplePos) {
+    bool reachable;
+    const unsigned kFutureSamps = getAvailableReadSamples();
+    const unsigned kPastSamps = bufferDistance(middle_, start_, capacity());
+    // Check if reachable within buffer
+    if (newSamplePos >= samplePos_ &&
+        newSamplePos <= samplePos_ + kFutureSamps) {
+      const unsigned kAdvance = newSamplePos - samplePos_;
+      middle_ = (middle_ + kAdvance) % capacity();
+      updateDelay(kAdvance);
+      count_ -= kAdvance;
+      reachable = true;
+    } else if (newSamplePos <= samplePos_ &&
+               newSamplePos >= samplePos_ - kPastSamps) {
+      const unsigned kReverse = samplePos_ - newSamplePos;
+      middle_ = (middle_ - kReverse) % capacity();
+      reachable = true;
+    } else {
+      reachable = false;
+      start_ = middle_ = end_ = count_ = 0;
+      buffer_.clear();
+    }
+    samplePos_ = newSamplePos;
+    return reachable;
+  }
 
   // Accessors
 
@@ -98,11 +120,8 @@ class AudioWindow {
   unsigned getAvailableReadSamples() const {
     if (end_ == middle_) {
       return count_;
-    } else if (end_ > middle_) {
-      return end_ - middle_;
-    } else {
-      return capacity() - middle_ + end_;
     }
+    return bufferDistance(end_, middle_, capacity());
   }
 
   // Total samples in the buffer
@@ -131,8 +150,13 @@ class AudioWindow {
     }
   }
 
+  size_t bufferDistance(const size_t head, const size_t tail,
+                        const size_t capacity) const {
+    return (head >= tail) ? (head - tail) : (capacity - (tail - head));
+  }
+
   juce::AudioBuffer<float> buffer_;
   unsigned padding_;
   unsigned start_, end_, middle_, count_;
-  size_t absPos_;
+  size_t samplePos_;
 };
