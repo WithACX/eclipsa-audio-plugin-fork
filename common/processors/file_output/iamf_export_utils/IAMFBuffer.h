@@ -15,7 +15,9 @@ class IAMFBuffer {
     const unsigned kSampleRate = kStreamData.sampleRate;
     const unsigned kFrameSize = kStreamData.frameSize;
     const unsigned kNumSamples = paddingSeconds * kSampleRate;
-    slidingWindow_ = AudioWindow(kNumChannels, kNumSamples);
+    std::cout << "Resetting decoder\n";
+    decoder_.seekFrame(0);
+    window_ = AudioWindow(kNumChannels, kNumSamples);
     decodeThread_ = std::thread(&IAMFBuffer::decodeTask, this);
     wakeDecodeTask();
   }
@@ -30,12 +32,12 @@ class IAMFBuffer {
 
   bool isReady() {
     const juce::SpinLock::ScopedLockType lock(bufferLock_);
-    return slidingWindow_.getAvailableReadSamples() > 0;
+    return window_.getAvailableReadSamples() > 0;
   }
 
   size_t availableSamples() const {
     const juce::SpinLock::ScopedLockType lock(bufferLock_);
-    return slidingWindow_.getAvailableReadSamples();
+    return window_.getAvailableReadSamples();
   }
 
   size_t readSamples(juce::AudioBuffer<float>& out, const unsigned startSample,
@@ -43,7 +45,7 @@ class IAMFBuffer {
     size_t kSamplesRead;
     {
       const juce::SpinLock::ScopedLockType lock(bufferLock_);
-      kSamplesRead = slidingWindow_.readSamples(startSample, numSamples, out);
+      kSamplesRead = window_.readSamples(startSample, numSamples, out);
 
       // Zero-pad if necessary.
       if (kSamplesRead < numSamples) {
@@ -59,7 +61,7 @@ class IAMFBuffer {
     bool kPosInBuff;
     {
       const juce::SpinLock::ScopedLockType lock(bufferLock_);
-      kPosInBuff = slidingWindow_.setSamplePos(absSampleIdx);
+      kPosInBuff = window_.setSamplePos(absSampleIdx);
     }
 
     wakeDecodeTask();
@@ -74,9 +76,8 @@ class IAMFBuffer {
       std::unique_lock<std::mutex> cvLock(cvMutex_);
       cv_.wait(cvLock, [this] {
         const juce::SpinLock::ScopedLockType lock(bufferLock_);
-        return stopThread_.load() ||
-               slidingWindow_.getAvailableWriteSamples() >=
-                   decoder_.getStreamData().frameSize;
+        return stopThread_.load() || window_.getAvailableWriteSamples() >=
+                                         decoder_.getStreamData().frameSize;
       });
 
       if (stopThread_) return;
@@ -84,7 +85,7 @@ class IAMFBuffer {
       // If the sliding window has space for a frame, decode more samples into
       // it.
       const juce::SpinLock::ScopedLockType lock(bufferLock_);
-      unsigned numWriteAvailable = slidingWindow_.getAvailableWriteSamples();
+      unsigned numWriteAvailable = window_.getAvailableWriteSamples();
       while (numWriteAvailable >= decoder_.getStreamData().frameSize) {
         juce::AudioBuffer<float> tempBuffer(
             decoder_.getStreamData().numChannels,
@@ -95,7 +96,7 @@ class IAMFBuffer {
         }
 
         const bool kWriteSuccess =
-            slidingWindow_.writeSamples(kSamplesDecoded, tempBuffer);
+            window_.writeSamples(kSamplesDecoded, tempBuffer);
         if (!kWriteSuccess) {
           throw std::runtime_error(
               "Write to buffer failed when there was available room!");
@@ -107,7 +108,7 @@ class IAMFBuffer {
 
  private:
   IAMFFileReader& decoder_;
-  AudioWindow slidingWindow_;
+  AudioWindow window_;
   std::thread decodeThread_;
   std::atomic<bool> stopThread_ = false;
   std::condition_variable cv_;
