@@ -3,7 +3,7 @@
 #include <mutex>
 #include <stdexcept>
 
-#include "SlidingAudioWindow.h"
+#include "AudioWindow.h"
 #include "processors/file_output/iamf_export_utils/IAMFFileReader.h"
 
 class IAMFBuffer {
@@ -15,7 +15,7 @@ class IAMFBuffer {
     const unsigned kSampleRate = kStreamData.sampleRate;
     const unsigned kFrameSize = kStreamData.frameSize;
     const unsigned kNumSamples = paddingSeconds * kSampleRate;
-    slidingWindow_ = SlidingAudioWindow(kNumChannels, kNumSamples);
+    slidingWindow_ = AudioWindow(kNumChannels, kNumSamples);
     decodeThread_ = std::thread(&IAMFBuffer::decodeTask, this);
     wakeDecodeTask();
   }
@@ -102,7 +102,7 @@ class IAMFBuffer {
 
  private:
   IAMFFileReader& decoder_;
-  SlidingAudioWindow slidingWindow_;
+  AudioWindow slidingWindow_;
   std::thread decodeThread_;
   std::atomic<bool> stopThread_ = false;
   std::condition_variable cv_;

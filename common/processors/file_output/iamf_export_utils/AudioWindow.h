@@ -1,11 +1,11 @@
 #pragma once
 #include <juce_audio_basics/juce_audio_basics.h>
 
-class SlidingAudioWindow {
+class AudioWindow {
  public:
-  SlidingAudioWindow() : buffer_(0, 0) {}
+  AudioWindow() : buffer_(0, 0) {}
 
-  SlidingAudioWindow(const unsigned numChannels, const unsigned numPadSamples)
+  AudioWindow(const unsigned numChannels, const unsigned numPadSamples)
       : buffer_(numChannels, numPadSamples * 2),
         padding_(numPadSamples),
         start_(0),

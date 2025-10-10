@@ -1,100 +1,63 @@
-#include "../file_output/iamf_export_utils/SlidingAudioWindow.h"
-
 #include <gtest/gtest.h>
 
-TEST(SlidingAudioWindow, WriteAndReadNoWrap) {
-  // Create a window with 4 samples of padding in both directions - 8 samples
-  // total.
-  const unsigned kNumChannels = 1;
-  const unsigned kNumPadSamples = 4;
-  SlidingAudioWindow window(kNumChannels, kNumPadSamples);
-  // 1 extra sample to differentiate full vs empty buffer
-  EXPECT_EQ(window.capacity(), kNumPadSamples * 2 + 1);
-  EXPECT_EQ(window.getAvailableWriteSamples(), kNumPadSamples * 2);
+#include "../file_output/iamf_export_utils/AudioWindow.h"
 
-  // Create input buffer with known values
-  juce::AudioBuffer<float> inputBuffer(kNumChannels, kNumPadSamples);
-  for (unsigned i = 0; i < kNumPadSamples; ++i) {
-    inputBuffer.setSample(0, i, i);
-  }
-  EXPECT_TRUE(window.writeSamples(kNumPadSamples, inputBuffer));
+// Tests will be with windows of 4 samples for illustration purposes.
+const unsigned kNumCh = 1;
+const unsigned kSize = 4;
+const unsigned kPad = kSize / 2;
 
-  // Read back the samples
-  juce::AudioBuffer<float> outputBuffer(kNumChannels, kNumPadSamples);
-  EXPECT_EQ(window.readSamples(0, kNumPadSamples, outputBuffer),
-            kNumPadSamples);
-  for (unsigned i = 0; i < kNumPadSamples; ++i) {
-    ASSERT_FLOAT_EQ(outputBuffer.getSample(0, i), inputBuffer.getSample(0, i));
+juce::AudioBuffer<float> in(kNumCh, kSize);
+juce::AudioBuffer<float> out(kNumCh, kSize);
+
+// 1. Partially fill the buffer and read all of it.
+TEST(Window, partial) {
+  AudioWindow win(kNumCh, kPad);
+  // Write
+  const unsigned kSamps = 3;
+  for (int i = 0; i < kSamps; ++i) {
+    in.setSample(0, i, i);
   }
+  ASSERT_TRUE(win.writeSamples(kSamps, in));
+
+  EXPECT_EQ(win.size(), kSamps);
+  EXPECT_EQ(win.capacity(), kSize);
+  EXPECT_EQ(win.getAvailableWriteSamples(), 1);
+
+  // Read
+  ASSERT_EQ(win.readSamples(0, kSamps, out), kSamps);
+  for (int i = 0; i < kSamps; ++i) {
+    ASSERT_EQ(out.getSample(0, i), i);
+  }
+  // Because pad == 2 and we read 3 samples (read through the padding), the
+  // start pointer should have advanced in the buffer and there should now be 2
+  // samples available to read in.
+  EXPECT_EQ(win.size(), 2);
+  EXPECT_EQ(win.getAvailableWriteSamples(), 2);
 }
 
-// Test writing the full buffer, then reading samples.
-TEST(SlidingAudioWindow, WriteAndReadFullBuffer) {
-  const unsigned kNumChannels = 1;
-  const unsigned kNumPadSamples = 4;
-  SlidingAudioWindow window(kNumChannels, kNumPadSamples);
-
-  // Create input buffer with known values
-  juce::AudioBuffer<float> inputBuffer(kNumChannels, kNumPadSamples * 2);
-  for (unsigned i = 0; i < kNumPadSamples * 2; ++i) {
-    inputBuffer.setSample(0, i, i);
+// 2. Fully fill the buffer and read all of it.
+TEST(Window, full) {
+  AudioWindow win(kNumCh, kPad);
+  const unsigned kSamps = 4;
+  for (int i = 0; i < kSamps; ++i) {
+    in.setSample(0, i, i);
   }
-  EXPECT_TRUE(window.writeSamples(kNumPadSamples * 2, inputBuffer));
+  ASSERT_TRUE(win.writeSamples(kSamps, in));
 
-  // Read back the samples
-  juce::AudioBuffer<float> outputBuffer(kNumChannels, kNumPadSamples * 2);
-  EXPECT_EQ(window.readSamples(0, kNumPadSamples * 2, outputBuffer),
-            kNumPadSamples * 2);
-  for (unsigned i = 0; i < kNumPadSamples * 2; ++i) {
-    ASSERT_FLOAT_EQ(outputBuffer.getSample(0, i), inputBuffer.getSample(0, i));
+  EXPECT_EQ(win.size(), kSamps);
+  EXPECT_EQ(win.capacity(), 4);
+  EXPECT_EQ(win.getAvailableWriteSamples(), 0);
+
+  // Read
+  ASSERT_EQ(win.readSamples(0, kSamps, out), kSamps);
+  for (int i = 0; i < kSamps; ++i) {
+    ASSERT_EQ(out.getSample(0, i), i);
   }
+
+  EXPECT_EQ(win.size(), 2);
+  EXPECT_EQ(win.getAvailableWriteSamples(), 2);
 }
-
-// Test writing the full buffer, reading 1 past the halfway point, then check
-// there's available samples to be written. Then write available samples, and
-// read the right half of the buffer back.
-TEST(SlidingAudioWindow, WriteReadWrapAround) {
-  const unsigned kNumChannels = 1;
-  const unsigned kNumPadSamples = 4;
-  SlidingAudioWindow window(kNumChannels, kNumPadSamples);
-
-  // Create input buffer with known values
-  juce::AudioBuffer<float> inputBuffer(kNumChannels, kNumPadSamples * 2);
-  for (unsigned i = 0; i < kNumPadSamples * 2; ++i) {
-    inputBuffer.setSample(0, i, i);
-  }
-  EXPECT_TRUE(window.writeSamples(kNumPadSamples * 2, inputBuffer));
-
-  // Read back just past the halfway point
-  juce::AudioBuffer<float> outputBuffer(kNumChannels, kNumPadSamples + 1);
-  EXPECT_EQ(window.readSamples(0, kNumPadSamples + 1, outputBuffer),
-            kNumPadSamples + 1);
-  for (unsigned i = 0; i < kNumPadSamples + 1; ++i) {
-    ASSERT_FLOAT_EQ(outputBuffer.getSample(0, i), inputBuffer.getSample(0, i));
-  }
-
-  // There should be 1 available to write now
-  const auto kAvailable = window.getAvailableWriteSamples();
-  EXPECT_EQ(kAvailable, 1);
-
-  // Write available samples (1)
-  juce::AudioBuffer<float> inputBuffer2(kNumChannels, kAvailable);
-  for (unsigned i = 0; i < kAvailable; ++i) {
-    inputBuffer2.setSample(0, i, i + kNumPadSamples * 2);
-  }
-  EXPECT_TRUE(window.writeSamples(kAvailable, inputBuffer2));
-
-  // Read back the next 4 samples
-  juce::AudioBuffer<float> outputBuffer2(kNumChannels, kNumPadSamples);
-  EXPECT_EQ(window.readSamples(0, kNumPadSamples, outputBuffer2),
-            kNumPadSamples);
-  for (unsigned i = 0; i < kNumPadSamples - 1; ++i) {
-    ASSERT_FLOAT_EQ(outputBuffer2.getSample(0, i),
-                    inputBuffer.getSample(0, i + kNumPadSamples + 1));
-    std::cout << "Comparing " << outputBuffer2.getSample(0, i) << " to "
-              << inputBuffer.getSample(0, i + kNumPadSamples + 1) << std::endl;
-  }
-  // Last sample should be the new sample we wrote (8)
-  ASSERT_FLOAT_EQ(outputBuffer2.getSample(0, outputBuffer2.getNumSamples() - 1),
-                  8);
-}
+// 3. Fully fill the buffer, read some, refill some, read all.
+// 4. Set absolute positions ahead valid. Set absolute position behind valid.
+// 5. Set absolute position ahead invalid. Set absolute position behind invalid.
