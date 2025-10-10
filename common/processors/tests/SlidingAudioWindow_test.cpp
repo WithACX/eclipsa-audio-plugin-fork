@@ -58,6 +58,51 @@ TEST(Window, full) {
   EXPECT_EQ(win.size(), 2);
   EXPECT_EQ(win.getAvailableWriteSamples(), 2);
 }
+
 // 3. Fully fill the buffer, read some, refill some, read all.
-// 4. Set absolute positions ahead valid. Set absolute position behind valid.
-// 5. Set absolute position ahead invalid. Set absolute position behind invalid.
+TEST(Window, full_rwr) {
+  AudioWindow win(kNumCh, kPad);
+  const unsigned kSamps = 4;
+  for (int i = 0; i < kSamps; ++i) {
+    in.setSample(0, i, i);
+  }
+  ASSERT_TRUE(win.writeSamples(kSamps, in));
+
+  EXPECT_EQ(win.size(), kSamps);
+  EXPECT_EQ(win.capacity(), 4);
+  EXPECT_EQ(win.getAvailableWriteSamples(), 0);
+
+  // Read all
+  ASSERT_EQ(win.readSamples(0, kSamps, out), kSamps);
+  for (int i = 0; i < kSamps; ++i) {
+    ASSERT_EQ(out.getSample(0, i), i);
+  }
+
+  EXPECT_EQ(win.size(), kPad);
+  EXPECT_EQ(win.getAvailableWriteSamples(), kPad);
+
+  // Refill.
+  in.setSample(0, 0, 4);
+  in.setSample(0, 1, 5);
+  ASSERT_TRUE(win.writeSamples(kPad, in));
+
+  // Read the new samples.
+  ASSERT_EQ(win.readSamples(0, kPad, out), kPad);
+  EXPECT_EQ(out.getSample(0, 0), 4);
+  EXPECT_EQ(out.getSample(0, 1), 5);
+
+  EXPECT_EQ(win.size(), kSize);
+  EXPECT_EQ(win.getAvailableWriteSamples(), 0);
+}
+
+// 4. Set absolute positions ahead valid.
+TEST(Window, pos_ahead) {}
+
+// 5. Set absolute position behind valid.
+TEST(Window, pos_behind) {}
+
+// 6. Set absolute position ahead invalid.
+TEST(Window, pos_ahead_ob) {}
+
+// 7. Set absolute position behind invalid.
+TEST(Window, pos_behind_ob) {}

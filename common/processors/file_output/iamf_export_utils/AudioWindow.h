@@ -49,7 +49,7 @@ class AudioWindow {
 
   unsigned readSamples(const unsigned startSample, const unsigned numSamples,
                        juce::AudioBuffer<float>& out) {
-    const unsigned kAvailableSamples = size();
+    const unsigned kAvailableSamples = getAvailableReadSamples();
     const unsigned kSamplesToRead = std::min(numSamples, kAvailableSamples);
     if (kSamplesToRead == 0) {
       return 0;
@@ -95,6 +95,17 @@ class AudioWindow {
 
   unsigned getAvailableWriteSamples() const { return capacity() - size(); }
 
+  unsigned getAvailableReadSamples() const {
+    if (end_ == middle_) {
+      return count_;
+    } else if (end_ > middle_) {
+      return end_ - middle_;
+    } else {
+      return capacity() - middle_ + end_;
+    }
+  }
+
+  // Total samples in the buffer
   unsigned size() const { return count_; }
 
  private:
