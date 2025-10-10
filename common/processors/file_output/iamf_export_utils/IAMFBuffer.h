@@ -40,7 +40,13 @@ class IAMFBuffer {
     return window_.getAvailableReadSamples();
   }
 
-  bool hasReachedEOF() const { return reachedEOF_.load(); }
+  void wakeDecodeTask() {
+    if (!reachedEOF_) {
+      cv_.notify_one();
+    }
+  }
+
+  bool hasReachedEOF() const { return reachedEOF_; }
 
   size_t readSamples(juce::AudioBuffer<float>& out, const unsigned startSample,
                      const unsigned numSamples) {
@@ -85,12 +91,6 @@ class IAMFBuffer {
     wakeDecodeTask();
 
     return kPosInBuff;
-  }
-
-  void wakeDecodeTask() {
-    if (!reachedEOF_) {
-      cv_.notify_one();
-    }
   }
 
   void decodeTask() {
