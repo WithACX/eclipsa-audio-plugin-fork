@@ -1,5 +1,7 @@
 #include "IAMFDecoderSource.h"
 
+#include <stdexcept>
+
 IAMFDecoderSource::IAMFDecoderSource(const std::filesystem::path iamfPath)
     : decoder_(iamfPath), isPlaying_(false) {
   streamData_ = decoder_.getStreamData();
@@ -36,7 +38,9 @@ void IAMFDecoderSource::prepareToPlay(int, double) {
   const juce::SpinLock::ScopedLockType lock(stateLock_);
 
   // Create IAMFBuffer which will start background thread for buffering
-  buffer_ = std::make_unique<IAMFBuffer>(3, decoder_);
+  std::cout << "Buffering audio\n";
+  buffer_ = std::make_unique<IAMFBuffer>(5, decoder_);
+  std::cout << "Done Buffering audio\n";
 
   // Wait for buffer to be ready before starting playback
   // This ensures we have enough buffered audio
@@ -62,7 +66,13 @@ void IAMFDecoderSource::getNextAudioBlock(
     return;
   }
 
-  actualFrameCount_ +=
-      buffer_->readSamples(*info.buffer, info.startSample, info.numSamples) /
-      streamData_.frameSize;
+  const auto kNumRead =
+      buffer_->readSamples(*info.buffer, info.startSample, info.numSamples);
+
+  // If we've reached EOF and no samples are available, stop playback
+  if (kNumRead == 0 && buffer_->hasReachedEOF()) {
+    isPlaying_ = false;
+    info.clearActiveBufferRegion();
+    stop();
+  }
 }

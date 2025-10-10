@@ -40,18 +40,35 @@ class IAMFBuffer {
     return window_.getAvailableReadSamples();
   }
 
+  bool hasReachedEOF() const { return reachedEOF_.load(); }
+
   size_t readSamples(juce::AudioBuffer<float>& out, const unsigned startSample,
                      const unsigned numSamples) {
     size_t kSamplesRead;
     {
       const juce::SpinLock::ScopedLockType lock(bufferLock_);
+
+      // If we've reached EOF and no samples are available, return 0
+      if (reachedEOF_.load() && window_.getAvailableReadSamples() == 0) {
+        std::cout << "EOF reached and buffer exhausted\n";
+        out.clear(startSample, numSamples);
+        return 0;
+      }
+
       kSamplesRead = window_.readSamples(startSample, numSamples, out);
+
+      if (kSamplesRead < numSamples) {
+        std::cout << "End of file in sight - read " << kSamplesRead << " of "
+                  << numSamples << " samples, EOF: " << reachedEOF_.load()
+                  << "\n";
+      }
 
       // Zero-pad if necessary.
       if (kSamplesRead < numSamples) {
-        out.clear(kSamplesRead, numSamples - kSamplesRead);
+        out.clear(startSample + kSamplesRead, numSamples - kSamplesRead);
       }
     }
+
     wakeDecodeTask();
 
     return kSamplesRead;
@@ -62,6 +79,7 @@ class IAMFBuffer {
     {
       const juce::SpinLock::ScopedLockType lock(bufferLock_);
       kPosInBuff = window_.setSamplePos(absSampleIdx);
+      reachedEOF_ = false;
     }
 
     wakeDecodeTask();
@@ -69,22 +87,29 @@ class IAMFBuffer {
     return kPosInBuff;
   }
 
-  void wakeDecodeTask() { cv_.notify_one(); }
+  void wakeDecodeTask() {
+    if (!reachedEOF_) {
+      cv_.notify_one();
+    }
+  }
 
   void decodeTask() {
     while (!stopThread_) {
       std::unique_lock<std::mutex> cvLock(cvMutex_);
       cv_.wait(cvLock, [this] {
         const juce::SpinLock::ScopedLockType lock(bufferLock_);
-        return stopThread_.load() || window_.getAvailableWriteSamples() >=
-                                         decoder_.getStreamData().frameSize;
+        return stopThread_.load() ||
+               (!reachedEOF_.load() && window_.getAvailableWriteSamples() >=
+                                           decoder_.getStreamData().frameSize);
       });
 
       if (stopThread_) return;
+      if (reachedEOF_) continue;
 
       // If the sliding window has space for a frame, decode more samples into
       // it.
       const juce::SpinLock::ScopedLockType lock(bufferLock_);
+
       unsigned numWriteAvailable = window_.getAvailableWriteSamples();
       while (numWriteAvailable >= decoder_.getStreamData().frameSize) {
         juce::AudioBuffer<float> tempBuffer(
@@ -92,6 +117,7 @@ class IAMFBuffer {
             decoder_.getStreamData().frameSize);
         const size_t kSamplesDecoded = decoder_.readFrame(tempBuffer);
         if (kSamplesDecoded == 0) {
+          reachedEOF_ = true;
           break;
         }
 
@@ -111,6 +137,7 @@ class IAMFBuffer {
   AudioWindow window_;
   std::thread decodeThread_;
   std::atomic<bool> stopThread_ = false;
+  std::atomic<bool> reachedEOF_ = false;
   std::condition_variable cv_;
   std::mutex cvMutex_;
   juce::SpinLock bufferLock_;
