@@ -29,35 +29,38 @@ class IAMFBuffer {
   }
 
   bool isReady() {
-    std::unique_lock<std::mutex> lock(stateLock_);
-    return slidingWindow_.size() > 0;
+    const juce::SpinLock::ScopedLockType lock(bufferLock_);
+    return slidingWindow_.getAvailableReadSamples() > 0;
   }
 
   size_t availableSamples() const {
-    std::unique_lock<std::mutex>(stateLock_);
-    return slidingWindow_.size();
+    const juce::SpinLock::ScopedLockType lock(bufferLock_);
+    return slidingWindow_.getAvailableReadSamples();
   }
 
   size_t readSamples(juce::AudioBuffer<float>& out, const unsigned startSample,
                      const unsigned numSamples) {
-    stateLock_.lock();
-    const size_t kSamplesRead =
-        slidingWindow_.readSamples(startSample, numSamples, out);
+    size_t kSamplesRead;
+    {
+      const juce::SpinLock::ScopedLockType lock(bufferLock_);
+      kSamplesRead = slidingWindow_.readSamples(startSample, numSamples, out);
 
-    // Zero-pad if necessary.
-    if (kSamplesRead < numSamples) {
-      out.clear(kSamplesRead, numSamples - kSamplesRead);
+      // Zero-pad if necessary.
+      if (kSamplesRead < numSamples) {
+        out.clear(kSamplesRead, numSamples - kSamplesRead);
+      }
     }
-    stateLock_.unlock();
     wakeDecodeTask();
 
     return kSamplesRead;
   }
 
   bool seek(const size_t absSampleIdx) {
-    stateLock_.lock();
-    const bool kPosInBuff = slidingWindow_.setSamplePos(absSampleIdx);
-    stateLock_.unlock();
+    bool kPosInBuff;
+    {
+      const juce::SpinLock::ScopedLockType lock(bufferLock_);
+      kPosInBuff = slidingWindow_.setSamplePos(absSampleIdx);
+    }
 
     wakeDecodeTask();
 
@@ -68,8 +71,9 @@ class IAMFBuffer {
 
   void decodeTask() {
     while (!stopThread_) {
-      std::unique_lock<std::mutex> lock(stateLock_);
-      cv_.wait(lock, [this] {
+      std::unique_lock<std::mutex> cvLock(cvMutex_);
+      cv_.wait(cvLock, [this] {
+        const juce::SpinLock::ScopedLockType lock(bufferLock_);
         return stopThread_.load() ||
                slidingWindow_.getAvailableWriteSamples() >=
                    decoder_.getStreamData().frameSize;
@@ -79,6 +83,7 @@ class IAMFBuffer {
 
       // If the sliding window has space for a frame, decode more samples into
       // it.
+      const juce::SpinLock::ScopedLockType lock(bufferLock_);
       unsigned numWriteAvailable = slidingWindow_.getAvailableWriteSamples();
       while (numWriteAvailable >= decoder_.getStreamData().frameSize) {
         juce::AudioBuffer<float> tempBuffer(
@@ -106,5 +111,6 @@ class IAMFBuffer {
   std::thread decodeThread_;
   std::atomic<bool> stopThread_ = false;
   std::condition_variable cv_;
-  std::mutex stateLock_;
+  std::mutex cvMutex_;
+  juce::SpinLock bufferLock_;
 };

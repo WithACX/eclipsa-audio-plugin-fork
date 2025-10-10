@@ -5,6 +5,7 @@
 #include <filesystem>
 
 #include "processors/file_output/iamf_export_utils/IAMFFileReader.h"
+#include "processors/tests/FileOutputTestUtils.h"
 
 void waitForData() {
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -13,7 +14,9 @@ void waitForData() {
 const std::filesystem::path kReferenceFilePath =
     std::filesystem::current_path() / "test_reader.iamf";
 
-// Test list:
+// DEBUG:
+const std::filesystem::path kDebugOutPath =
+    std::filesystem::current_path().parent_path() / "test_reader.wav";
 
 // 1. Test creating and filling the buffer.
 TEST(IAMFBuffer, fill) {
@@ -137,4 +140,36 @@ TEST(IAMFBuffer, fill_seek_behind_ob) {
 
   // Attempt seeking to a position outside the amount of padding we have.
   EXPECT_FALSE(buffer.seek(0));
+}
+
+// 7. Read through the entire IAMF file.
+TEST(IAMFBuffer, whole_file) {
+  IAMFFileReader decoder(std::filesystem::current_path() /
+                         "Reference2x2.wav.iamf");
+
+  const unsigned kPadSecs = 3;
+  const size_t kPadSamples = decoder.getStreamData().sampleRate * kPadSecs;
+  IAMFBuffer buffer(kPadSecs, decoder);
+
+  waitForData();
+
+  EXPECT_TRUE(buffer.isReady());
+  EXPECT_TRUE(buffer.availableSamples() > 0);
+
+  WavFileWriter writer(kDebugOutPath, decoder.getStreamData().numChannels,
+                       decoder.getStreamData().sampleRate);
+
+  const size_t kWriterBuffSz = 1024;
+  juce::AudioBuffer<float> out(decoder.getStreamData().numChannels,
+                               kWriterBuffSz);
+  int frames = 0;
+  while (frames < decoder.getStreamData().numFrames) {
+    if (buffer.availableSamples() >= kWriterBuffSz) {
+      ASSERT_EQ(buffer.readSamples(out, 0, kWriterBuffSz), kWriterBuffSz);
+      writer.write(out, kWriterBuffSz);
+      ++frames;
+    } else {
+      waitForData();
+    }
+  }
 }
