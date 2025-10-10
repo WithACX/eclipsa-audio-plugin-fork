@@ -43,6 +43,8 @@ void IAMFDecoderSource::prepareToPlay(int, double) {
   while (!buffer_->isReady()) {
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
+  std::cout << "Frames available at prepare(): "
+            << buffer_->availableSamples() / streamData_.frameSize << std::endl;
 }
 
 void IAMFDecoderSource::releaseResources() {

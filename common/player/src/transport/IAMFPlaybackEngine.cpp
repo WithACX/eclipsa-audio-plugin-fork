@@ -45,7 +45,7 @@ bool IAMFPlaybackEngine::configureSourcePlayer(const unsigned sampleRate,
     source = decoderSource_.get();
   }
   sourcePlayer_.setSource(source);
-  sourcePlayer_.prepareToPlay(sampleRate, frameSize);
+  // sourcePlayer_.prepareToPlay(sampleRate, frameSize);
   return true;
 }
 
@@ -80,18 +80,21 @@ void IAMFPlaybackEngine::play() {
   if (decoderSource_) {
     decoderSource_->play();
   }
+  std::cout << "Play\n";
 }
 
 void IAMFPlaybackEngine::pause() {
   if (decoderSource_) {
     decoderSource_->pause();
   }
+  std::cout << "Pause\n";
 }
 
 void IAMFPlaybackEngine::stop() {
   if (decoderSource_) {
     decoderSource_->stop();
   }
+  std::cout << "Stop\n";
 }
 
 void IAMFPlaybackEngine::setVolume(const float volume) {
@@ -99,6 +102,7 @@ void IAMFPlaybackEngine::setVolume(const float volume) {
 }
 
 void IAMFPlaybackEngine::seek(const float position) {
+  std::cout << "Seek\n";
   decoderSource_->pause();
   resampler_->flushBuffers();
   IAMFFileReader::StreamData streamData = decoderSource_->getStreamData();
