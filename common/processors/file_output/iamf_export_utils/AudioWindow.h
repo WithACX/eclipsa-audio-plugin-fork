@@ -49,15 +49,8 @@ class AudioWindow {
 
   unsigned readSamples(const unsigned startSample, const unsigned numSamples,
                        juce::AudioBuffer<float>& out) {
-    // Calculate available samples between middle and end
-    unsigned availableSamples;
-    if (end_ >= middle_) {
-      availableSamples = end_ - middle_;
-    } else {
-      availableSamples = capacity() - middle_ + end_;
-    }
-
-    const unsigned kSamplesToRead = std::min(numSamples, availableSamples);
+    const unsigned kAvailableSamples = size();
+    const unsigned kSamplesToRead = std::min(numSamples, kAvailableSamples);
     if (kSamplesToRead == 0) {
       return 0;
     }
@@ -86,20 +79,7 @@ class AudioWindow {
     // Advance middle pointer
     middle_ = (middle_ + kSamplesToRead) % kCapacity;
 
-    // Calculate delay buffer size (samples from start to middle)
-    unsigned delayBufferSize;
-    if (middle_ >= start_) {
-      delayBufferSize = middle_ - start_;
-    } else {
-      delayBufferSize = kCapacity - start_ + middle_;
-    }
-
-    // If delay buffer exceeds padding, advance start and free up space
-    if (delayBufferSize > padding_) {
-      unsigned excessSamples = delayBufferSize - padding_;
-      start_ = (start_ + excessSamples) % kCapacity;
-      count_ -= excessSamples;
-    }
+    updateDelay(kSamplesToRead);
 
     // Update absolute sample position
     absPos_ += kSamplesToRead;
@@ -118,6 +98,28 @@ class AudioWindow {
   unsigned size() const { return count_; }
 
  private:
+  void updateDelay(const unsigned sampsRead) {
+    // If we read the entire buffer delay should be the padding.
+    // Calculate delay buffer size (samples from start to middle)
+    unsigned delayBufferSize;
+    if (sampsRead == capacity()) {
+      // TODO: Is there a better way to catch the case we read the entirety of
+      // the buffer?
+      delayBufferSize = capacity();
+    } else if (middle_ >= start_) {
+      delayBufferSize = middle_ - start_;
+    } else {
+      delayBufferSize = capacity() - start_ + middle_;
+    }
+
+    // If delay buffer exceeds padding, advance start and free up space
+    if (delayBufferSize > padding_) {
+      unsigned excessSamples = delayBufferSize - padding_;
+      start_ = (start_ + excessSamples) % capacity();
+      count_ -= excessSamples;
+    }
+  }
+
   juce::AudioBuffer<float> buffer_;
   unsigned padding_;
   unsigned start_, end_, middle_, count_;
