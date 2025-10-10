@@ -49,14 +49,62 @@ class SlidingAudioWindow {
 
   unsigned readSamples(const unsigned startSample, const unsigned numSamples,
                        juce::AudioBuffer<float>& out) {
-    // Record the difference between end and middle.
-    // Record how many samples we can read from between them whether it's equal
-    // or less.
-    // Read those samples into the buffer.
-    // Increment middle by the number of samples read.
-    // If the difference between end and mid becomes less than the padding,
-    // increment start by that amount. Decrement count by that amount as that
-    // space becomes free for writing.
+    // Calculate available samples between middle and end
+    unsigned availableSamples;
+    if (end_ >= middle_) {
+      availableSamples = end_ - middle_;
+    } else {
+      availableSamples = capacity() - middle_ + end_;
+    }
+
+    const unsigned kSamplesToRead = std::min(numSamples, availableSamples);
+    if (kSamplesToRead == 0) {
+      return 0;
+    }
+
+    const unsigned kCapacity = capacity();
+    const unsigned kNumChannels = out.getNumChannels();
+
+    // Copy samples from middle pointer
+    if (middle_ + kSamplesToRead <= kCapacity) {
+      // No wrap-around needed
+      for (unsigned ch = 0; ch < kNumChannels; ++ch) {
+        out.copyFrom(ch, startSample, buffer_, ch, middle_, kSamplesToRead);
+      }
+    } else {
+      // Need to wrap around
+      const unsigned firstChunkSize = kCapacity - middle_;
+      const unsigned secondChunkSize = kSamplesToRead - firstChunkSize;
+
+      for (unsigned ch = 0; ch < kNumChannels; ++ch) {
+        out.copyFrom(ch, startSample, buffer_, ch, middle_, firstChunkSize);
+        out.copyFrom(ch, startSample + firstChunkSize, buffer_, ch, 0,
+                     secondChunkSize);
+      }
+    }
+
+    // Advance middle pointer
+    middle_ = (middle_ + kSamplesToRead) % kCapacity;
+
+    // Calculate delay buffer size (samples from start to middle)
+    unsigned delayBufferSize;
+    if (middle_ >= start_) {
+      delayBufferSize = middle_ - start_;
+    } else {
+      delayBufferSize = kCapacity - start_ + middle_;
+    }
+
+    // If delay buffer exceeds padding, advance start and free up space
+    if (delayBufferSize > padding_) {
+      unsigned excessSamples = delayBufferSize - padding_;
+      start_ = (start_ + excessSamples) % kCapacity;
+      count_ -= excessSamples;
+    }
+
+    // Update absolute sample position
+    absPos_ += kSamplesToRead;
+
+    return kSamplesToRead;
   }
 
   bool setAbsPos(const unsigned newAbsSamplePos) {}
