@@ -1,7 +1,5 @@
 #include "IAMFDecoderSource.h"
 
-#include <stdexcept>
-
 IAMFDecoderSource::IAMFDecoderSource(const std::filesystem::path iamfPath)
     : decoder_(iamfPath), isPlaying_(false) {
   streamData_ = decoder_.getStreamData();

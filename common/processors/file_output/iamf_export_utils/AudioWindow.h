@@ -78,7 +78,7 @@ class AudioWindow {
 
     middle_ = (middle_ + kSamplesToRead) % kCapacity;
 
-    updateDelay(kSamplesToRead);
+    updateDelay();
 
     samplePos_ += kSamplesToRead;
 
@@ -94,7 +94,7 @@ class AudioWindow {
         newSamplePos <= samplePos_ + kFutureSamps) {
       const unsigned kAdvance = newSamplePos - samplePos_;
       middle_ = (middle_ + kAdvance) % capacity();
-      updateDelay(kAdvance);
+      updateDelay();
       count_ -= kAdvance;
       reachable = true;
     } else if (newSamplePos <= samplePos_ &&
@@ -115,7 +115,13 @@ class AudioWindow {
 
   unsigned capacity() const { return buffer_.getNumSamples(); }
 
-  unsigned getAvailableWriteSamples() const { return capacity() - size(); }
+  unsigned getAvailableWriteSamples() const {
+    if (end_ == start_) {
+      return count_ == 0 ? capacity() : 0;
+    } else {
+      return bufferDistance(end_, start_, capacity());
+    }
+  }
 
   unsigned getAvailableReadSamples() const {
     if (end_ == middle_) {
@@ -128,23 +134,12 @@ class AudioWindow {
   unsigned size() const { return count_; }
 
  private:
-  void updateDelay(const unsigned sampsRead) {
-    // If we read the entire buffer delay should be the padding.
-    // Calculate delay buffer size (samples from start to middle)
-    unsigned delayBufferSize;
-    if (sampsRead == capacity()) {
-      // TODO: Is there a better way to catch the case we read the entirety of
-      // the buffer?
-      delayBufferSize = capacity();
-    } else if (middle_ >= start_) {
-      delayBufferSize = middle_ - start_;
-    } else {
-      delayBufferSize = capacity() - start_ + middle_;
-    }
+  void updateDelay() {
+    const unsigned kDelayBuffer = bufferDistance(middle_, start_, capacity());
 
     // If delay buffer exceeds padding, advance start and free up space
-    if (delayBufferSize > padding_) {
-      unsigned excessSamples = delayBufferSize - padding_;
+    if (kDelayBuffer > padding_) {
+      unsigned excessSamples = kDelayBuffer - padding_;
       start_ = (start_ + excessSamples) % capacity();
       count_ -= excessSamples;
     }

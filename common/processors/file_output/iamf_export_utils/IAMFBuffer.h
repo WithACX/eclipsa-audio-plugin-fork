@@ -110,8 +110,8 @@ class IAMFBuffer {
       // it.
       const juce::SpinLock::ScopedLockType lock(bufferLock_);
 
-      unsigned numWriteAvailable = window_.getAvailableWriteSamples();
-      while (numWriteAvailable >= decoder_.getStreamData().frameSize) {
+      while (window_.getAvailableWriteSamples() >=
+             decoder_.getStreamData().frameSize) {
         juce::AudioBuffer<float> tempBuffer(
             decoder_.getStreamData().numChannels,
             decoder_.getStreamData().frameSize);
@@ -125,9 +125,9 @@ class IAMFBuffer {
             window_.writeSamples(kSamplesDecoded, tempBuffer);
         if (!kWriteSuccess) {
           throw std::runtime_error(
-              "Write to buffer failed when there was available room!");
+              "IAMFBuffer: Write to buffer failed when there was available "
+              "room!");
         }
-        numWriteAvailable -= kSamplesDecoded;
       }
     }
   }
