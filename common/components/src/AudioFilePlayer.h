@@ -4,26 +4,42 @@
 
 #include <memory>
 
-#include "components/src/AudioPlayer.h"
+#include "AudioPlayer.h"
 #include "components/src/ColouredSlider.h"
 #include "components/src/Icons.h"
 #include "components/src/RoundImageButton.h"
+#include "data_repository/implementation/FilePlaybackRepository.h"
+#include "data_structures/src/FilePlayback.h"
 #include "player/src/transport/IAMFPlaybackEngine.h"
 #include "processors/file_output/iamf_export_utils/IAMFFileReader.h"
 
 class AudioFilePlayer : public juce::Component, private juce::Timer {
  public:
-  AudioFilePlayer()
+  AudioFilePlayer(FilePlaybackRepository& filePlaybackRepo)
       : playButton_("Play", IconStore::getInstance().getPlayIcon()),
         pauseButton_("Pause", IconStore::getInstance().getPauseIcon()),
         stopButton_("Stop", IconStore::getInstance().getStopIcon()),
         timeLabel_("timeLabel", "00:00 / 00:00"),
+        fpbr_(filePlaybackRepo),
         // Debug: Hardcoding this during testing
         playbackEngine_(std::make_unique<IAMFPlaybackEngine>(
-            "/Users/joelm/Desktop/FIOTests/Reference2x2.wav.iamf")) {
-    playButton_.onClick = [this]() { playbackEngine_->play(); };
-    pauseButton_.onClick = [this]() { playbackEngine_->pause(); };
-    stopButton_.onClick = [this]() { playbackEngine_->stop(); };
+            "/Users/joelm/Desktop/FIOTests/Reference2x2.wav.iamf",
+            filePlaybackRepo)) {
+    playButton_.onClick = [this]() {
+      auto fpb = fpbr_.get();
+      fpb.setPlayState(FilePlayback::kPlay);
+      fpbr_.update(fpb);
+    };
+    pauseButton_.onClick = [this]() {
+      auto fpb = fpbr_.get();
+      fpb.setPlayState(FilePlayback::kPause);
+      fpbr_.update(fpb);
+    };
+    stopButton_.onClick = [this]() {
+      auto fpb = fpbr_.get();
+      fpb.setPlayState(FilePlayback::kStop);
+      fpbr_.update(fpb);
+    };
 
     playbackSlider_.setRange(0.0, 1.0);
     playbackSlider_.setValue(0.0);
@@ -32,7 +48,9 @@ class AudioFilePlayer : public juce::Component, private juce::Timer {
     playbackSlider_.onValueChange = [this]() {
       std::cout << "Hit slider change: " << playbackSlider_.getValue()
                 << std::endl;
-      playbackEngine_->seek((float)playbackSlider_.getValue());
+      auto fpb = fpbr_.get();
+      fpb.setSeekPosition(static_cast<float>(playbackSlider_.getValue()));
+      fpbr_.update(fpb);
     };
     addAndMakeVisible(playbackSlider_);
 
@@ -51,12 +69,7 @@ class AudioFilePlayer : public juce::Component, private juce::Timer {
     startTimerHz(10);  // Update UI at 10 Hz
   }
 
-  void paint(juce::Graphics& g) override {
-    auto bounds = getLocalBounds();
-
-    // g.setColour(juce::Colours::darkgrey);
-    // g.fillRoundedRectangle(bounds.toFloat(), 4.0f);
-  }
+  void paint(juce::Graphics& g) override { auto bounds = getLocalBounds(); }
 
   void resized() override {
     auto bounds = getLocalBounds();
@@ -111,5 +124,6 @@ class AudioFilePlayer : public juce::Component, private juce::Timer {
   ColouredSlider playbackSlider_, volumeSlider_;
   SpeakerImageComponent speakerIcon_;
   juce::Rectangle<int> playbackBounds_, volumeBounds_;
+  FilePlaybackRepository& fpbr_;
   std::unique_ptr<class IAMFPlaybackEngine> playbackEngine_;
 };

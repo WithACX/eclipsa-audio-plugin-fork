@@ -18,6 +18,7 @@
 #include <juce_data_structures/juce_data_structures.h>
 
 #include "data_structures/src/RepositoryItem.h"
+#include "substream_rdr/substream_rdr_utils/Speakers.h"
 
 // Using a macro here to help minimize the amount of code
 //  If we need custom getters/setters we can
@@ -33,16 +34,17 @@
   type get##y() const { return x##_; }    \
   inline static const juce::Identifier k##y{#x};
 
-enum CurrentPlayerState { DISABLED, PLAY, PAUSE, STOP };
-
 class FilePlayback final : public RepositoryItemBase {
  public:
+  enum CurrentPlayerState { kDisabled, kPlay, kPause, kStop };
+
   FilePlayback();
   FilePlayback(int volume, int totalFileLength, int currentSecond,
                CurrentPlayerState isPlaying, juce::String audioElements,
                juce::String loudnessInfo, juce::String currentMixPresentation,
                int setCurrentSecond, juce::String mixPresentations,
-               juce::String playbackFile);
+               juce::String playbackFile, float seekPosition,
+               Speakers::AudioElementSpeakerLayout reqdDecodeLayout);
 
   ~FilePlayback() = default;
 
@@ -62,4 +64,7 @@ class FilePlayback final : public RepositoryItemBase {
   EXPORT_VALUE(int, setCurrentSecond, SetCurrentSecond);
   EXPORT_VALUE(juce::String, mixPresentations, MixPresentations);
   EXPORT_VALUE(juce::String, playbackFile, PlaybackFile);
+  EXPORT_VALUE(float, seekPosition, SeekPosition);
+  EXPORT_VALUE(Speakers::AudioElementSpeakerLayout, reqdDecodeLayout,
+               ReqdDecodeLayout);
 };

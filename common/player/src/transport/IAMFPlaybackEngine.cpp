@@ -1,11 +1,14 @@
 #include "IAMFPlaybackEngine.h"
 
+#include "data_structures/src/FilePlayback.h"
 #include "logger/logger.h"
 #include "processors/file_output/iamf_export_utils/IAMFFileReader.h"
 
-IAMFPlaybackEngine::IAMFPlaybackEngine(const std::filesystem::path iamfPath)
+IAMFPlaybackEngine::IAMFPlaybackEngine(const std::filesystem::path iamfPath,
+                                       FilePlaybackRepository& filePlaybackRepo)
     : decoderSource_(std::make_unique<IAMFDecoderSource>(iamfPath)),
-      resampler_(nullptr) {
+      resampler_(nullptr),
+      fpbr_(filePlaybackRepo) {
   // Attempt to configure playback based on the file's properties
   IAMFFileReader::StreamData streamData = decoderSource_->getStreamData();
   auto frameSize = streamData.frameSize;
@@ -24,8 +27,8 @@ IAMFPlaybackEngine::IAMFPlaybackEngine(const std::filesystem::path iamfPath)
                       std::to_string(sampleRate) + " to " +
                       std::to_string(kPlaybackSetup.sampleRate));
     }
-    // TODO: It's possible we didn't get the frame size we requested. What
-    // happens here?
+    // It's possible we didn't get the frame size we requested. This is fine as
+    // we can request an arbitrary number of samples from the audio source
     if (kPlaybackSetup.bufferSize != frameSize) {
     }
   }
@@ -33,6 +36,7 @@ IAMFPlaybackEngine::IAMFPlaybackEngine(const std::filesystem::path iamfPath)
 
   // Other configuration for playback
   deviceManager_.addAudioCallback(&sourcePlayer_);
+  fpbr_.registerListener(this);
 }
 
 bool IAMFPlaybackEngine::configureSourcePlayer(const unsigned sampleRate,
@@ -76,35 +80,23 @@ IAMFFileReader::StreamData IAMFPlaybackEngine::getStreamData() const {
   return {};
 }
 
-void IAMFPlaybackEngine::play() {
-  if (decoderSource_) {
-    decoderSource_->play();
-  }
-  std::cout << "Play\n";
-}
+void IAMFPlaybackEngine::play() { decoderSource_->play(); }
 
-void IAMFPlaybackEngine::pause() {
-  if (decoderSource_) {
-    decoderSource_->pause();
-  }
-  std::cout << "Pause\n";
-}
+void IAMFPlaybackEngine::pause() { decoderSource_->pause(); }
 
-void IAMFPlaybackEngine::stop() {
-  if (decoderSource_) {
-    decoderSource_->stop();
-  }
-  std::cout << "Stop\n";
-}
+void IAMFPlaybackEngine::stop() { decoderSource_->stop(); }
 
 void IAMFPlaybackEngine::setVolume(const float volume) {
   sourcePlayer_.setGain(volume);
 }
 
 void IAMFPlaybackEngine::seek(const float position) {
-  std::cout << "Seek\n";
+  jassert(position >= 0.0f && position <= 1.0f);
+
   decoderSource_->pause();
-  resampler_->flushBuffers();
+  if (resampler_) {
+    resampler_->flushBuffers();
+  }
   IAMFFileReader::StreamData streamData = decoderSource_->getStreamData();
   if (!decoderSource_->seek(position * streamData.numFrames)) {
     LOG_WARNING(0, "IAMFPlaybackEngine: Seek operation failed");
@@ -112,9 +104,39 @@ void IAMFPlaybackEngine::seek(const float position) {
   decoderSource_->play();
 }
 
+void IAMFPlaybackEngine::valueTreePropertyChanged(
+    juce::ValueTree& tree, const juce::Identifier& property) {
+  const FilePlayback fpb = fpbr_.get();
+  if (property == FilePlayback::kPlayState) {
+    switch (fpb.getPlayState()) {
+      case FilePlayback::kPlay:
+        play();
+        break;
+      case FilePlayback::kPause:
+        pause();
+        break;
+      case FilePlayback::kStop:
+        stop();
+        break;
+      default:
+        stop();
+    }
+  } else if (property == FilePlayback::kVolume) {
+    setVolume(fpb.getVolume());
+  }
+  // File to playback could change
+  else if (false) {
+  }
+  // Requested playback layout could change
+  else if (false) {
+  } else if (property == FilePlayback::kSeekPosition) {
+    seek(fpb.getSeekPosition());
+  }
+}
+
 IAMFPlaybackEngine::~IAMFPlaybackEngine() {
-  // Stop playback and clean up
   stop();
   sourcePlayer_.setSource(nullptr);
   deviceManager_.removeAudioCallback(&sourcePlayer_);
+  fpbr_.deregisterListener(this);
 }

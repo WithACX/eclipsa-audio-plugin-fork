@@ -14,12 +14,14 @@
 
 #include "FilePlayback.h"
 
+#include "substream_rdr/substream_rdr_utils/Speakers.h"
+
 FilePlayback::FilePlayback()
     : RepositoryItemBase({}),
       volume_(0),
       totalFileLength_(0),
       currentSecond_(0),
-      playState_(DISABLED),
+      playState_(CurrentPlayerState::kDisabled),
       audioElements_(""),
       loudnessInfo_(""),
       currentMixPresentation_(""),
@@ -32,7 +34,8 @@ FilePlayback::FilePlayback(int volume, int totalFileLength, int currentSecond,
                            juce::String loudnessInfo,
                            juce::String currentMixPresentation,
                            int setCurrentSecond, juce::String mixPresentations,
-                           juce::String playbackFile)
+                           juce::String playbackFile, float seekPosition,
+                           Speakers::AudioElementSpeakerLayout reqdDecodeLayout)
     : RepositoryItemBase({}),
       volume_(volume),
       totalFileLength_(totalFileLength),
@@ -43,14 +46,19 @@ FilePlayback::FilePlayback(int volume, int totalFileLength, int currentSecond,
       currentMixPresentation_(currentMixPresentation),
       setCurrentSecond_(setCurrentSecond),
       mixPresentations_(mixPresentations),
-      playbackFile_(playbackFile) {}
+      playbackFile_(playbackFile),
+      seekPosition_(seekPosition),
+      reqdDecodeLayout_(reqdDecodeLayout) {}
 
 FilePlayback FilePlayback::fromTree(const juce::ValueTree tree) {
-  return FilePlayback(
+  FilePlayback fpb(
       tree[kVolume], tree[kTotalFileLength], tree[kCurrentSecond],
       (CurrentPlayerState)(int)tree[kPlayState], tree[kAudioElements],
       tree[kLoudnessInfo], tree[kCurrentMixPresentation],
-      tree[kSetCurrentSecond], tree[kMixPresentations], tree[kPlaybackFile]);
+      tree[kSetCurrentSecond], tree[kMixPresentations], tree[kPlaybackFile],
+      tree[kSeekPosition],
+      (Speakers::AudioElementSpeakerLayout)tree[kReqdDecodeLayout]);
+  return fpb;
 }
 
 juce::ValueTree FilePlayback::toValueTree() const {
@@ -64,5 +72,7 @@ juce::ValueTree FilePlayback::toValueTree() const {
            {kCurrentMixPresentation, currentMixPresentation_},
            {kSetCurrentSecond, setCurrentSecond_},
            {kMixPresentations, mixPresentations_},
-           {kPlaybackFile, playbackFile_}}};
+           {kPlaybackFile, playbackFile_},
+           {kSeekPosition, seekPosition_},
+           {kReqdDecodeLayout, (int)reqdDecodeLayout_}}};
 }

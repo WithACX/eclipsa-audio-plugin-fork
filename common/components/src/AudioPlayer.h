@@ -49,17 +49,17 @@ class AudioPlayerComponent : public juce::Component,
     // Configure button events
     playButton.onClick = [this]() {
       auto repo = filePlaybackRepository_->get();
-      repo.setPlayState(PLAY);
+      repo.setPlayState(FilePlayback::kPlay);
       filePlaybackRepository_->update(repo);
     };
     pauseButton.onClick = [this]() {
       auto repo = filePlaybackRepository_->get();
-      repo.setPlayState(PAUSE);
+      repo.setPlayState(FilePlayback::kPause);
       filePlaybackRepository_->update(repo);
     };
     stopButton.onClick = [this]() {
       auto repo = filePlaybackRepository_->get();
-      repo.setPlayState(STOP);
+      repo.setPlayState(FilePlayback::kStop);
       filePlaybackRepository_->update(repo);
     };
 
@@ -136,22 +136,22 @@ class AudioPlayerComponent : public juce::Component,
     auto repo = filePlaybackRepository_->get();
 
     // Enable / Disable buttons as needed
-    if (repo.getPlayState() == DISABLED) {
+    if (repo.getPlayState() == FilePlayback::kDisabled) {
       playButton.setEnabled(false);
       pauseButton.setEnabled(false);
       stopButton.setEnabled(false);
       playbackSlider.setEnabled(false);
-    } else if (repo.getPlayState() == PLAY) {
+    } else if (repo.getPlayState() == FilePlayback::kPlay) {
       playButton.setEnabled(false);
       pauseButton.setEnabled(true);
       stopButton.setEnabled(true);
       playbackSlider.setEnabled(true);
-    } else if (repo.getPlayState() == PAUSE) {
+    } else if (repo.getPlayState() == FilePlayback::kPause) {
       playButton.setEnabled(true);
       pauseButton.setEnabled(false);
       stopButton.setEnabled(true);
       playbackSlider.setEnabled(true);
-    } else if (repo.getPlayState() == STOP) {
+    } else if (repo.getPlayState() == FilePlayback::kStop) {
       playButton.setEnabled(true);
       pauseButton.setEnabled(false);
       stopButton.setEnabled(false);

@@ -5,13 +5,15 @@
 
 #include "AudioFilePlayer.h"
 #include "components/src/SelectionBox.h"
+#include "data_repository/implementation/FilePlaybackRepository.h"
 #include "substream_rdr/substream_rdr_utils/Speakers.h"
 
 class ExportValidationComponent : public juce::Component {
  public:
-  ExportValidationComponent()
+  ExportValidationComponent(FilePlaybackRepository& filePlaybackRepo)
       : title_("Export validation", "Export validation"),
-        layoutToDecode_("Mix Presentation Layout") {
+        layoutToDecode_("Mix Presentation Layout"),
+        audioPlayer_(filePlaybackRepo) {
     title_.setColour(juce::Label::textColourId, juce::Colour(221, 228, 227));
     title_.setJustificationType(juce::Justification::left);
     title_.setFont(juce::Font("Roboto", 22.0f, juce::Font::plain));

@@ -16,6 +16,7 @@
 
 #include "../RendererProcessor.h"
 #include "components/src/EclipsaColours.h"
+#include "components/src/ExportValidation.h"
 #include "data_structures/src/FileExport.h"
 #include "data_structures/src/MixPresentation.h"
 
@@ -59,6 +60,7 @@ FileExportScreen::FileExportScreen(MainEditor& editor,
       // mixLoudnessLabel_("MixLoudnessLbl", "Mix loudness"),
       // mixLoudnessValueLabel_("MixLoudnessValueLbl", "loudness information"),
       // mixPresentationSelector_("Mix Presentation"),
+      exportValidation_(repos.playbackRepo_),
       repository_(&repos.fioRepo_),
       aeRepository_(&repos.aeRepo_),
       mpRepository_(&repos.mpRepo_),
@@ -187,7 +189,7 @@ FileExportScreen::FileExportScreen(MainEditor& editor,
   exportPath_.onTextChanged([this] {
     FilePlayback config = filePlaybackRepository_->get();
     config.setPlaybackFile(exportPath_.getText());
-    config.setPlayState(CurrentPlayerState::STOP);
+    config.setPlayState(FilePlayback::CurrentPlayerState::kStop);
     filePlaybackRepository_->update(config);
   });
 

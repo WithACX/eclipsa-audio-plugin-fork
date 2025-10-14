@@ -31,9 +31,7 @@ bool IAMFDecoderSource::seek(size_t frameIndex) {
   }
   sampleCount_ = frameIndex * streamData_.frameSize;
   frameCount_ = frameIndex;
-  // pause();
   buffer_->seek(frameIndex);
-  // play();
   return true;
 }
 

@@ -80,17 +80,21 @@ void IAMFTransport::updateTransport() {
 
   // If the file is still the same, check the current playback state matches the
   // current transport source state
-  if (fileRepository.getPlayState() == CurrentPlayerState::PLAY) {
+  if (fileRepository.getPlayState() ==
+      FilePlayback::CurrentPlayerState::kPlay) {
     if (transportSource.isPlaying() == false) {
       transportSource.start();
     }
-  } else if (fileRepository.getPlayState() == CurrentPlayerState::STOP ||
-             fileRepository.getPlayState() == CurrentPlayerState::DISABLED) {
+  } else if (fileRepository.getPlayState() ==
+                 FilePlayback::CurrentPlayerState::kStop ||
+             fileRepository.getPlayState() ==
+                 FilePlayback::CurrentPlayerState::kDisabled) {
     if (transportSource.isPlaying() == true) {
       transportSource.stop();
       transportSource.setPosition(0);
     }
-  } else if (fileRepository.getPlayState() == CurrentPlayerState::PAUSE) {
+  } else if (fileRepository.getPlayState() ==
+             FilePlayback::CurrentPlayerState::kPause) {
     transportSource.stop();
   }
 

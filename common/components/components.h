@@ -32,7 +32,6 @@ END_JUCE_MODULE_DECLARATION
 
 #endif
 
-#include "src/AudioPlayer.h"
 #include "src/ChannelListComponent.h"
 #include "src/ColouredSlider.h"
 #include "src/DAWCompatibilityChecker.h"

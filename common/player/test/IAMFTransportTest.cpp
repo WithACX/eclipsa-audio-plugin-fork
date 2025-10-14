@@ -17,7 +17,13 @@
 #include <filesystem>
 #include <thread>
 
+#include "data_repository/implementation/FilePlaybackRepository.h"
 #include "player/src/transport/IAMFPlaybackEngine.h"
+
+class TestFPBR : public FilePlaybackRepository {
+ public:
+  TestFPBR() : FilePlaybackRepository(juce::ValueTree("test")) {}
+};
 
 TEST(test_iamf_transport, engine) {
   const std::filesystem::path kIamfReferencePath =
@@ -30,7 +36,9 @@ TEST(test_iamf_transport, engine) {
   }
 
   // Now we can safely create the engine
-  auto player = std::make_unique<IAMFPlaybackEngine>(kIamfReferencePath);
+  TestFPBR dummyState;
+  auto player =
+      std::make_unique<IAMFPlaybackEngine>(kIamfReferencePath, dummyState);
 
   player->play();
   std::this_thread::sleep_for(std::chrono::seconds(2));
