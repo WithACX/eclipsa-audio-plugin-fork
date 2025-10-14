@@ -1,20 +1,27 @@
 #pragma once
 
+#include <juce_audio_basics/juce_audio_basics.h>
+
 #include <algorithm>
 #include <cstddef>
-#include <vector>
 
 class PbRingBuffer {
  public:
-  using Buffer = std::vector<std::vector<float>>;
+  using Buffer = juce::AudioBuffer<float>;
 
-  PbRingBuffer(const size_t pad_samples = 1024)
+  PbRingBuffer(const int num_channels, const size_t pad_samples = 1024)
       : kPad_(pad_samples),
         kCapacity_(3 * kPad_),
-        buffer_(Buffer(kCapacity_)),
+        buffer_(num_channels, kCapacity_),
         head_(0),
         tail_(0),
         count_(0) {}
+
+  size_t availReadSamples() const { return count_; }
+
+  size_t availWriteSamples() const {
+    return std::min(kPad_, available(tail_, head_));
+  }
 
   bool writeSamples(const size_t num_samples, const Buffer& in) {
     if (num_samples > availWriteSamples()) {
@@ -23,19 +30,25 @@ class PbRingBuffer {
 
     if (tail_ + num_samples < kCapacity_) {
       // Enough space without wrapping
-      for (size_t i = 0; i < num_samples; ++i) {
-        buffer_[tail_ + i] = in[i];
+      for (int ch = 0;
+           ch < std::min(buffer_.getNumChannels(), in.getNumChannels()); ++ch) {
+        for (size_t i = 0; i < num_samples; ++i) {
+          buffer_.setSample(ch, tail_ + i, in.getSample(ch, i));
+        }
       }
       tail_ = (tail_ + num_samples) % kCapacity_;
     } else {
       // Need to wrap around
       const size_t first_chunk = kCapacity_ - tail_;
       const size_t second_chunk = num_samples - first_chunk;
-      for (size_t i = 0; i < first_chunk; ++i) {
-        buffer_[tail_ + i] = in[i];
-      }
-      for (size_t i = 0; i < second_chunk; ++i) {
-        buffer_[i] = in[first_chunk + i];
+      for (int ch = 0;
+           ch < std::min(buffer_.getNumChannels(), in.getNumChannels()); ++ch) {
+        for (size_t i = 0; i < first_chunk; ++i) {
+          buffer_.setSample(ch, tail_ + i, in.getSample(ch, i));
+        }
+        for (size_t i = 0; i < second_chunk; ++i) {
+          buffer_.setSample(ch, i, in.getSample(ch, first_chunk + i));
+        }
       }
 
       tail_ = second_chunk;
@@ -48,21 +61,28 @@ class PbRingBuffer {
     const size_t kToRead = std::min(num_samples, available(head_, tail_));
     if (head_ + kToRead < kCapacity_) {
       // Can read in one continuous chunk
-      for (size_t i = 0; i < kToRead; ++i) {
-        out[i] = buffer_[head_ + i];
+      for (int ch = 0;
+           ch < std::min(buffer_.getNumChannels(), out.getNumChannels());
+           ++ch) {
+        for (size_t i = 0; i < kToRead; ++i) {
+          out.setSample(ch, i, buffer_.getSample(ch, head_ + i));
+        }
       }
       head_ = (head_ + kToRead) % kCapacity_;
     } else {
       // Need to wrap around
       const size_t first_chunk = kCapacity_ - head_;
       const size_t second_chunk = kToRead - first_chunk;
-      for (size_t i = 0; i < first_chunk; ++i) {
-        out[i] = buffer_[head_ + i];
+      for (int ch = 0;
+           ch < std::min(buffer_.getNumChannels(), out.getNumChannels());
+           ++ch) {
+        for (size_t i = 0; i < first_chunk; ++i) {
+          out.setSample(ch, i, buffer_.getSample(ch, head_ + i));
+        }
+        for (size_t i = 0; i < second_chunk; ++i) {
+          out.setSample(ch, first_chunk + i, buffer_.getSample(ch, i));
+        }
       }
-      for (size_t i = 0; i < second_chunk; ++i) {
-        out[first_chunk + i] = buffer_[i];
-      }
-
       head_ = second_chunk;
     }
 
@@ -70,19 +90,14 @@ class PbRingBuffer {
     return kToRead;
   }
 
-  size_t availReadSamples() const { return available(head_, tail_); }
-
-  size_t availWriteSamples() const {
-    return std::min(kPad_, available(tail_, head_));
-  }
-
-  void seek(const size_t num_samples, const bool forwards) {
+  void seek(const long num_samples) {
+    const bool kForwards = num_samples >= 0 ? true : false;
     // Check if we can seek forwards or backwards by the requested sample count.
     // Do required pointer accounting.
-    if (forwards && num_samples <= distance(head_, tail_)) {
+    if (kForwards && num_samples <= distance(head_, tail_)) {
       head_ = (head_ + num_samples) % kCapacity_;
       count_ -= num_samples;
-    } else if (!forwards && num_samples <= kPad_) {
+    } else if (!kForwards && num_samples <= kPad_) {
       head_ = (head_ + kCapacity_ - num_samples) % kCapacity_;
       count_ += num_samples;
     } else {
