@@ -82,18 +82,27 @@ class IAMFBuffer {
     return kSamplesRead;
   }
 
-  void seek(const size_t newAbsPos) {
+  void seek(const size_t newFrameIdx) {
     {
       const juce::SpinLock::ScopedLockType lock(bufferLock_);
+      const size_t kNewAbsSamplePos =
+          newFrameIdx * decoder_.getStreamData().frameSize;
+      bool posInBuff;
       size_t diff;
-      if (newAbsPos > absSamplePos_) {
-        diff = newAbsPos - absSamplePos_;
-        window_->seek(diff, true);
+      if (kNewAbsSamplePos > absSamplePos_) {
+        diff = kNewAbsSamplePos - absSamplePos_;
+        posInBuff = window_->seek(diff, true);
       } else {
-        diff = absSamplePos_ - newAbsPos;
-        window_->seek(diff, false);
+        diff = absSamplePos_ - kNewAbsSamplePos;
+        posInBuff = window_->seek(diff, false);
       }
-      absSamplePos_ = newAbsPos;
+      // If frame was in buffer great - decoder can continue as normal.
+      // If the frame was not in the buffer, decoder needs to seek to that pos.
+      if (!posInBuff) {
+        decoder_.seekFrame(newFrameIdx);
+      }
+
+      absSamplePos_ = kNewAbsSamplePos;
       reachedEOF_ = false;
     }
 
@@ -105,9 +114,9 @@ class IAMFBuffer {
       std::unique_lock<std::mutex> cvLock(cvMutex_);
       cv_.wait(cvLock, [this] {
         const juce::SpinLock::ScopedLockType lock(bufferLock_);
-        return stopThread_.load() ||
-               (!reachedEOF_.load() && window_->availWriteSamples() >=
-                                           decoder_.getStreamData().frameSize);
+        return stopThread_ ||
+               (!reachedEOF_ && window_->availWriteSamples() >=
+                                    decoder_.getStreamData().frameSize);
       });
 
       if (stopThread_) return;

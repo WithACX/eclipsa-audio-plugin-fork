@@ -92,19 +92,24 @@ class PbRingBuffer {
     return kToRead;
   }
 
-  void seek(const size_t num_samples, const bool forwards) {
+  [[maybe_unused]] bool seek(const size_t num_samples, const bool forwards) {
+    bool pos_in_buff;
     // Check if we can seek forwards or backwards by the requested sample count.
     // Do required pointer accounting.
     if (forwards && num_samples <= distance(head_, tail_)) {
       head_ = (head_ + num_samples) % kCapacity_;
       count_ -= num_samples;
+      pos_in_buff = true;
     } else if (!forwards && num_samples <= kPad_) {
       head_ = (head_ + kCapacity_ - num_samples) % kCapacity_;
       count_ += num_samples;
+      pos_in_buff = true;
     } else {
       buffer_.clear();
       head_ = tail_ = count_ = 0;
+      pos_in_buff = false;
     }
+    return pos_in_buff;
   }
 
  private:
