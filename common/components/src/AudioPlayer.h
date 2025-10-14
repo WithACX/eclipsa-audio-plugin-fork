@@ -8,21 +8,6 @@
 #include "components/src/RoundImageButton.h"
 #include "data_repository/implementation/FilePlaybackRepository.h"
 
-class SpeakerImageComponent : public juce::Component {
- public:
-  SpeakerImageComponent() {
-    setSize(50, 50);
-    speakerIcon_ = IconStore::getInstance().getSpeakerIcon();
-  }
-
-  void paint(juce::Graphics& g) override {
-    g.drawImage(speakerIcon_, getLocalBounds().toFloat());
-  }
-
- private:
-  juce::Image speakerIcon_;
-};
-
 inline juce::String convertToMinutes(int seconds) {
   int minutes = seconds / 60;
   seconds = seconds % 60;

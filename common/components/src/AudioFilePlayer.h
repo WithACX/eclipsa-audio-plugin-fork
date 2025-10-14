@@ -3,8 +3,10 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 
 #include <memory>
+#include <string_view>
 
-#include "AudioPlayer.h"
+#include "components/icons/svg/SvgIconComponent.h"
+#include "components/icons/svg/SvgIconLookup.h"
 #include "components/src/ColouredSlider.h"
 #include "components/src/Icons.h"
 #include "components/src/RoundImageButton.h"
@@ -20,6 +22,7 @@ class AudioFilePlayer : public juce::Component, private juce::Timer {
         pauseButton_("Pause", IconStore::getInstance().getPauseIcon()),
         stopButton_("Stop", IconStore::getInstance().getStopIcon()),
         timeLabel_("timeLabel", "00:00 / 00:00"),
+        volumeIcon_(SvgMap::kVolume),
         fpbr_(filePlaybackRepo),
         // Debug: Hardcoding this during testing
         playbackEngine_(std::make_unique<IAMFPlaybackEngine>(
@@ -64,6 +67,7 @@ class AudioFilePlayer : public juce::Component, private juce::Timer {
     addAndMakeVisible(pauseButton_);
     addAndMakeVisible(stopButton_);
     addAndMakeVisible(timeLabel_);
+    addAndMakeVisible(volumeIcon_);
 
     update();
     startTimerHz(10);  // Update UI at 10 Hz
@@ -84,7 +88,7 @@ class AudioFilePlayer : public juce::Component, private juce::Timer {
     timeLabel_.setBounds(playbackBounds_.removeFromLeft(100));
     playbackSlider_.setBounds(playbackBounds_);
 
-    speakerIcon_.setBounds(volumeBounds_.removeFromLeft(kButtonSz));
+    volumeIcon_.setBounds(volumeBounds_.removeFromLeft(kButtonSz));
     volumeSlider_.setBounds(
         volumeBounds_.removeFromLeft(100).reduced(kButtonMargin));
   }
@@ -122,7 +126,7 @@ class AudioFilePlayer : public juce::Component, private juce::Timer {
   RoundImageButton playButton_, pauseButton_, stopButton_;
   juce::Label timeLabel_;
   ColouredSlider playbackSlider_, volumeSlider_;
-  SpeakerImageComponent speakerIcon_;
+  SvgIconComponent volumeIcon_;
   juce::Rectangle<int> playbackBounds_, volumeBounds_;
   FilePlaybackRepository& fpbr_;
   std::unique_ptr<class IAMFPlaybackEngine> playbackEngine_;

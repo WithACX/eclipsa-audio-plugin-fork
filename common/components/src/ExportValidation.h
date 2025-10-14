@@ -12,6 +12,7 @@ class ExportValidationComponent : public juce::Component {
  public:
   ExportValidationComponent(FilePlaybackRepository& filePlaybackRepo)
       : title_("Export validation", "Export validation"),
+        playbackDevice_("Playback Device"),
         layoutToDecode_("Mix Presentation Layout"),
         audioPlayer_(filePlaybackRepo) {
     title_.setColour(juce::Label::textColourId, juce::Colour(221, 228, 227));
@@ -22,6 +23,7 @@ class ExportValidationComponent : public juce::Component {
     for (const auto& layout : kLayouts) {
       layoutToDecode_.addOption(layout.toString());
     }
+    addAndMakeVisible(playbackDevice_);
     addAndMakeVisible(layoutToDecode_);
     addAndMakeVisible(audioPlayer_);
   }
@@ -33,6 +35,8 @@ class ExportValidationComponent : public juce::Component {
 
     const int kRowHeight = 65, kPadding = 25;
     title_.setBounds(bounds.removeFromTop(kRowHeight));
+    playbackDevice_.setBounds(bounds.removeFromTop(kRowHeight));
+    bounds.removeFromTop(kPadding);
     layoutToDecode_.setBounds(bounds.removeFromTop(kRowHeight));
     bounds.removeFromTop(kPadding);
     audioPlayer_.setBounds(bounds.removeFromTop(kRowHeight * 2));
@@ -52,6 +56,8 @@ class ExportValidationComponent : public juce::Component {
       Speakers::kBinaural};
 
   juce::Label title_;
+  // Not connected to anything right now as I may have to remove it
+  SelectionBox playbackDevice_;
   SelectionBox layoutToDecode_;
   AudioFilePlayer audioPlayer_;
 };
