@@ -36,7 +36,7 @@ class IAMFDecoderSource : public juce::AudioSource {
 
   IAMFFileReader::StreamData getStreamData() {
     IAMFFileReader::StreamData data = streamData_;
-    data.currentFrameIdx = actualFrameCount_;
+    data.currentFrameIdx = frameCount_;
     return data;
   }
 
@@ -44,7 +44,7 @@ class IAMFDecoderSource : public juce::AudioSource {
   IAMFFileReader decoder_;
   IAMFFileReader::StreamData streamData_;
   std::unique_ptr<IAMFBuffer> buffer_;
-  size_t actualFrameCount_;
+  size_t sampleCount_ = 0, frameCount_ = 0;
   bool isPlaying_ = false;
   mutable juce::SpinLock stateLock_;
 };

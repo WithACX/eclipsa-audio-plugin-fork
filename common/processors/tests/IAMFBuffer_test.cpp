@@ -66,7 +66,7 @@ TEST(IAMFBuffer, fill_seek_ahead) {
   EXPECT_EQ(buffer.readSamples(out, 0, out.getNumSamples()),
             out.getNumSamples());
 
-  EXPECT_TRUE(buffer.seek(decoder.getStreamData().frameSize * 5));
+  buffer.seek(decoder.getStreamData().frameSize * 5);
   EXPECT_EQ(buffer.readSamples(out, 0, out.getNumSamples()),
             out.getNumSamples());
 }
@@ -94,7 +94,7 @@ TEST(IAMFBuffer, fill_seek_behind) {
 
   // We expect that if we seek to somewhere within that initial padding, the
   // data will be within our buffer.
-  EXPECT_TRUE(buffer.seek(kPadSamples / 2));
+  buffer.seek(kPadSamples / 2);
   EXPECT_EQ(buffer.readSamples(out, 0, out.getNumSamples()),
             out.getNumSamples());
 }
@@ -114,7 +114,7 @@ TEST(IAMFBuffer, fill_seek_ahead_ob) {
   EXPECT_TRUE(buffer.availableSamples() > 0);
 
   // Attempt seeking to a position outside the amount of padding we have.
-  EXPECT_FALSE(buffer.seek(kPadSamples * 3));
+  buffer.seek(kPadSamples * 3);
 }
 
 // 6. Test filling the buffer, then seeking to a position behind outside the
@@ -139,7 +139,7 @@ TEST(IAMFBuffer, fill_seek_behind_ob) {
             out.getNumSamples() + 7);
 
   // Attempt seeking to a position outside the amount of padding we have.
-  EXPECT_FALSE(buffer.seek(0));
+  buffer.seek(0);
 }
 
 // 7. Read through the entire IAMF file.

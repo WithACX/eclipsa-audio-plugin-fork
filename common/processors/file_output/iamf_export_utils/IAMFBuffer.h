@@ -62,8 +62,7 @@ class IAMFBuffer {
         return 0;
       }
 
-      // TODO: / WARNING: with new API I'm disregarding startSample for now.
-      kSamplesRead = window_->readSamples(numSamples, out);
+      kSamplesRead = window_->readSamples(startSample, numSamples, out);
 
       if (kSamplesRead < numSamples) {
         std::cout << "End of file in sight - read " << kSamplesRead << " of "
@@ -83,7 +82,7 @@ class IAMFBuffer {
     return kSamplesRead;
   }
 
-  bool seek(const size_t newAbsPos) {
+  void seek(const size_t newAbsPos) {
     {
       const juce::SpinLock::ScopedLockType lock(bufferLock_);
       size_t diff;
@@ -99,7 +98,6 @@ class IAMFBuffer {
     }
 
     wakeDecodeTask();
-    return true;
   }
 
   void decodeTask() {

@@ -57,7 +57,8 @@ class PbRingBuffer {
     return true;
   }
 
-  size_t readSamples(const size_t num_samples, Buffer& out) {
+  size_t readSamples(const size_t start_sample, const size_t num_samples,
+                     Buffer& out) {
     const size_t kToRead = std::min(num_samples, availReadSamples());
     if (head_ + kToRead < kCapacity_) {
       // Can read in one continuous chunk
@@ -65,7 +66,7 @@ class PbRingBuffer {
            ch < std::min(buffer_.getNumChannels(), out.getNumChannels());
            ++ch) {
         for (size_t i = 0; i < kToRead; ++i) {
-          out.setSample(ch, i, buffer_.getSample(ch, head_ + i));
+          out.setSample(ch, start_sample + i, buffer_.getSample(ch, head_ + i));
         }
       }
       head_ = (head_ + kToRead) % kCapacity_;
@@ -77,10 +78,11 @@ class PbRingBuffer {
            ch < std::min(buffer_.getNumChannels(), out.getNumChannels());
            ++ch) {
         for (size_t i = 0; i < first_chunk; ++i) {
-          out.setSample(ch, i, buffer_.getSample(ch, head_ + i));
+          out.setSample(ch, start_sample + i, buffer_.getSample(ch, head_ + i));
         }
         for (size_t i = 0; i < second_chunk; ++i) {
-          out.setSample(ch, first_chunk + i, buffer_.getSample(ch, i));
+          out.setSample(ch, start_sample + first_chunk + i,
+                        buffer_.getSample(ch, i));
         }
       }
       head_ = second_chunk;

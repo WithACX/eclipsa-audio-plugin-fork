@@ -20,7 +20,7 @@ void IAMFDecoderSource::stop() {
   isPlaying_ = false;
   if (buffer_) {
     buffer_->seek(0);
-    actualFrameCount_ = 0;
+    sampleCount_ = frameCount_ = 0;
   }
 }
 
@@ -29,7 +29,13 @@ bool IAMFDecoderSource::seek(size_t frameIndex) {
   if (!buffer_ || frameIndex >= streamData_.numFrames) {
     return false;
   }
-  return buffer_->seek(frameIndex * streamData_.frameSize);
+  const size_t kSamplePos = frameIndex * streamData_.frameSize;
+  sampleCount_ = kSamplePos;
+  frameCount_ = frameIndex;
+  // pause();
+  buffer_->seek(kSamplePos);
+  // play();
+  return true;
 }
 
 void IAMFDecoderSource::prepareToPlay(int, double) {
@@ -51,7 +57,6 @@ void IAMFDecoderSource::prepareToPlay(int, double) {
 
 void IAMFDecoderSource::releaseResources() {
   const juce::SpinLock::ScopedLockType lock(stateLock_);
-  // Destructor of IAMFBuffer will gracefully stop the background thread
   buffer_.reset();
 }
 
@@ -64,13 +69,13 @@ void IAMFDecoderSource::getNextAudioBlock(
     return;
   }
 
-  const auto kNumRead =
+  const size_t kNumRead =
       buffer_->readSamples(*info.buffer, info.startSample, info.numSamples);
+  sampleCount_ += kNumRead;
+  frameCount_ = sampleCount_ / streamData_.frameSize;
 
   // If we've reached EOF and no samples are available, stop playback
   if (kNumRead == 0 && buffer_->hasReachedEOF()) {
-    isPlaying_ = false;
-    info.clearActiveBufferRegion();
     stop();
   }
 }
