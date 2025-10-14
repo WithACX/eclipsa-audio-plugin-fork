@@ -83,11 +83,18 @@ class IAMFBuffer {
     return kSamplesRead;
   }
 
-  bool seek(const size_t absSampleIdx) {
+  bool seek(const size_t newAbsPos) {
     {
       const juce::SpinLock::ScopedLockType lock(bufferLock_);
-      window_->seek(static_cast<std::ptrdiff_t>(absSampleIdx) -
-                    static_cast<std::ptrdiff_t>(absSamplePos_));
+      size_t diff;
+      if (newAbsPos > absSamplePos_) {
+        diff = newAbsPos - absSamplePos_;
+        window_->seek(diff, true);
+      } else {
+        diff = absSamplePos_ - newAbsPos;
+        window_->seek(diff, false);
+      }
+      absSamplePos_ = newAbsPos;
       reachedEOF_ = false;
     }
 

@@ -69,34 +69,34 @@ TEST(PbRingBuffer, WrapAroundWrite) {
   }
 }
 
-// TEST(PbRingBuffer, SeekForward) {
-//   PbRingBuffer rb(kNumCh, kPad);
-//   juce::AudioBuffer<float> in(kNumCh, kSize);
-//   juce::AudioBuffer<float> out(kNumCh, kSize);
+TEST(PbRingBuffer, SeekForward) {
+  PbRingBuffer rb(kNumCh, kPad);
+  juce::AudioBuffer<float> in(kNumCh, kSize);
+  juce::AudioBuffer<float> out(kNumCh, kSize);
 
-//   for (int i = 0; i < kPad; ++i) in.setSample(0, i, static_cast<float>(i));
-//   rb.writeSamples(kPad, in);
+  for (int i = 0; i < kPad; ++i) in.setSample(0, i, static_cast<float>(i));
+  rb.writeSamples(kPad, in);
 
-//   rb.seek(1);
-//   EXPECT_EQ(rb.availReadSamples(), kPad - 1);
-//   rb.readSamples(1, out);
-//   EXPECT_FLOAT_EQ(out.getSample(0, 0), 1.0f);
-// }
+  rb.seek(1, true);
+  EXPECT_EQ(rb.availReadSamples(), kPad - 1);
+  rb.readSamples(1, out);
+  EXPECT_FLOAT_EQ(out.getSample(0, 0), 1.0f);
+}
 
-// TEST(PbRingBuffer, SeekBackward) {
-//   PbRingBuffer rb(kNumCh, kPad);
-//   juce::AudioBuffer<float> in(kNumCh, kSize);
-//   juce::AudioBuffer<float> out(kNumCh, kSize);
+TEST(PbRingBuffer, SeekBackward) {
+  PbRingBuffer rb(kNumCh, kPad);
+  juce::AudioBuffer<float> in(kNumCh, kSize);
+  juce::AudioBuffer<float> out(kNumCh, kSize);
 
-//   for (int i = 0; i < kPad; ++i) in.setSample(0, i, static_cast<float>(i));
-//   rb.writeSamples(kPad, in);
-//   rb.readSamples(1, out);
+  for (int i = 0; i < kPad; ++i) in.setSample(0, i, static_cast<float>(i));
+  rb.writeSamples(kPad, in);
+  rb.readSamples(1, out);
 
-//   rb.seek(-1);
-//   EXPECT_EQ(rb.availReadSamples(), kPad);
-//   rb.readSamples(1, out);
-//   EXPECT_FLOAT_EQ(out.getSample(0, 0), 0.0f);
-// }
+  rb.seek(1, false);
+  EXPECT_EQ(rb.availReadSamples(), kPad);
+  rb.readSamples(1, out);
+  EXPECT_FLOAT_EQ(out.getSample(0, 0), 0.0f);
+}
 
 // TEST(PbRingBuffer, MultiChannelWrite) {
 //   const int kChannels = 2;

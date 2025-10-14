@@ -58,7 +58,7 @@ class PbRingBuffer {
   }
 
   size_t readSamples(const size_t num_samples, Buffer& out) {
-    const size_t kToRead = std::min(num_samples, available(head_, tail_));
+    const size_t kToRead = std::min(num_samples, availReadSamples());
     if (head_ + kToRead < kCapacity_) {
       // Can read in one continuous chunk
       for (int ch = 0;
@@ -90,14 +90,13 @@ class PbRingBuffer {
     return kToRead;
   }
 
-  void seek(const long num_samples) {
-    const bool kForwards = num_samples >= 0 ? true : false;
+  void seek(const size_t num_samples, const bool forwards) {
     // Check if we can seek forwards or backwards by the requested sample count.
     // Do required pointer accounting.
-    if (kForwards && num_samples <= distance(head_, tail_)) {
+    if (forwards && num_samples <= distance(head_, tail_)) {
       head_ = (head_ + num_samples) % kCapacity_;
       count_ -= num_samples;
-    } else if (!kForwards && num_samples <= kPad_) {
+    } else if (!forwards && num_samples <= kPad_) {
       head_ = (head_ + kCapacity_ - num_samples) % kCapacity_;
       count_ += num_samples;
     } else {
