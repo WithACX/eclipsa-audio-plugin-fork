@@ -20,6 +20,10 @@ class SvgIconComponent : public juce::Component {
     }
   }
 
+  // virtual void setColour(const juce::Colour colour) override {
+  //   svgDrawable_->setColour(juce::TextButton::buttonColourId, colour);
+  // }
+
  private:
   SvgMap::Icon icon_;
   std::unique_ptr<juce::Drawable> svgDrawable_;

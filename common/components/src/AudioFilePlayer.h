@@ -3,12 +3,11 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 
 #include <memory>
-#include <string_view>
 
 #include "components/icons/svg/SvgIconComponent.h"
 #include "components/icons/svg/SvgIconLookup.h"
 #include "components/src/ColouredSlider.h"
-#include "components/src/Icons.h"
+#include "components/src/EclipsaColours.h"
 #include "components/src/RoundImageButton.h"
 #include "data_repository/implementation/FilePlaybackRepository.h"
 #include "data_structures/src/FilePlayback.h"
@@ -18,9 +17,9 @@
 class AudioFilePlayer : public juce::Component, private juce::Timer {
  public:
   AudioFilePlayer(FilePlaybackRepository& filePlaybackRepo)
-      : playButton_("Play", IconStore::getInstance().getPlayIcon()),
-        pauseButton_("Pause", IconStore::getInstance().getPauseIcon()),
-        stopButton_("Stop", IconStore::getInstance().getStopIcon()),
+      : playButton_("Play", SvgMap::kPlay),
+        pauseButton_("Pause", SvgMap::kPause),
+        stopButton_("Stop", SvgMap::kStop),
         timeLabel_("timeLabel", "00:00 / 00:00"),
         volumeIcon_(SvgMap::kVolume),
         fpbr_(filePlaybackRepo),
@@ -28,6 +27,12 @@ class AudioFilePlayer : public juce::Component, private juce::Timer {
         playbackEngine_(std::make_unique<IAMFPlaybackEngine>(
             "/Users/joelm/Desktop/FIOTests/Reference2x2.wav.iamf",
             filePlaybackRepo)) {
+    playButton_.setColour(juce::TextButton::buttonColourId,
+                          EclipsaColours::rolloverGrey);
+    pauseButton_.setColour(juce::TextButton::buttonColourId,
+                           EclipsaColours::rolloverGrey);
+    stopButton_.setColour(juce::TextButton::buttonColourId,
+                          EclipsaColours::rolloverGrey);
     playButton_.onClick = [this]() {
       auto fpb = fpbr_.get();
       fpb.setPlayState(FilePlayback::kPlay);
