@@ -32,7 +32,7 @@ constexpr bool kIsLogicProBuild = false;
 // When true, enables buffer chunking to handle Logic Pro's variable buffer
 // sizes When false (VST3, AAX), uses direct processing for optimal performance
 #if JucePlugin_Build_AU
-constexpr bool kIsAUBuild = true;
+constexpr bool kIsAUBuild = false;
 #else
 constexpr bool kIsAUBuild = false;
 #endif
