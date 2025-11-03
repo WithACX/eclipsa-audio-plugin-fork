@@ -53,13 +53,7 @@ Panner3DProcessor::~Panner3DProcessor() {
 }
 
 void Panner3DProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
-  if (kIsAUBuild) {
-    // AU Build: Use 32-sample chunks to handle variable buffer sizes
-    samplesPerBlock_ = std::min(samplesPerBlock, 32);
-  } else {
-    // Non-AU builds (VST3, AAX, etc.): Use host buffer size directly
-    samplesPerBlock_ = samplesPerBlock;
-  }
+  samplesPerBlock_ = samplesPerBlock;
 
   sampleRate_ = sampleRate;
   initializePanning();
@@ -118,91 +112,18 @@ void Panner3DProcessor::processBlock(juce::AudioBuffer<float>& buffer,
   renderLock.enter();
 
   if (surroundPanner_ != NULL) {
-    // Only update position if it has changed - avoid redundant renderer updates
-    // This significantly reduces CPU load during automation with many callbacks
-    if (xPosition_ != lastSetXPosition_ || yPosition_ != lastSetYPosition_ ||
-        zPosition_ != lastSetZPosition_) {
-      surroundPanner_->setPosition(xPosition_, yPosition_, zPosition_);
-      lastSetXPosition_ = xPosition_;
-      lastSetYPosition_ = yPosition_;
-      lastSetZPosition_ = zPosition_;
+    surroundPanner_->setPosition(xPosition_, yPosition_, zPosition_);
+
+    surroundPanner_->process(buffer, outputBuffer_);
+
+    const int copyChannels =
+        std::min(outputBuffer_.getNumChannels(), buffer.getNumChannels());
+    for (int channel = 0; channel < copyChannels; ++channel) {
+      buffer.copyFrom(channel, 0, outputBuffer_, channel, 0, hostBufferSize);
     }
-
-    if (kIsAUBuild) {
-      // AU Build: Chunked processing to handle Logic Pro's variable buffer
-      // sizes This prevents artifacts caused by buffer size changes during
-      // playback
-      const int rendererChunkSize = samplesPerBlock_;  // 32 samples for AU
-
-      if (hostBufferSize <= rendererChunkSize) {
-        // Simple case: host buffer fits in one chunk - most efficient
-        surroundPanner_->process(buffer, outputBuffer_);
-
-        const int copyChannels =
-            std::min(outputBuffer_.getNumChannels(), buffer.getNumChannels());
-        for (int channel = 0; channel < copyChannels; ++channel) {
-          buffer.copyFrom(channel, 0, outputBuffer_, channel, 0,
-                          hostBufferSize);
-        }
-        for (int channel = copyChannels; channel < buffer.getNumChannels();
-             ++channel) {
-          buffer.clear(channel, 0, hostBufferSize);
-        }
-      } else {
-        // Chunked processing: split large buffers into 32-sample chunks
-        static thread_local juce::AudioBuffer<float> chunkInput;
-        if (chunkInput.getNumChannels() != buffer.getNumChannels() ||
-            chunkInput.getNumSamples() != rendererChunkSize) {
-          chunkInput.setSize(buffer.getNumChannels(), rendererChunkSize, false,
-                             false, true);
-        }
-
-        for (int processed = 0; processed < hostBufferSize;
-             processed += rendererChunkSize) {
-          const int chunkSize =
-              std::min(rendererChunkSize, hostBufferSize - processed);
-
-          // Copy input and zero-pad if needed
-          for (int channel = 0; channel < buffer.getNumChannels(); ++channel) {
-            chunkInput.copyFrom(channel, 0, buffer, channel, processed,
-                                chunkSize);
-            if (chunkSize < rendererChunkSize) {
-              chunkInput.clear(channel, chunkSize,
-                               rendererChunkSize - chunkSize);
-            }
-          }
-
-          // Process chunk through renderer
-          surroundPanner_->process(chunkInput, outputBuffer_);
-
-          // Copy back processed audio
-          const int copyChannels =
-              std::min(outputBuffer_.getNumChannels(), buffer.getNumChannels());
-          for (int channel = 0; channel < copyChannels; ++channel) {
-            buffer.copyFrom(channel, processed, outputBuffer_, channel, 0,
-                            chunkSize);
-          }
-          // Clear any extra channels
-          for (int channel = copyChannels; channel < buffer.getNumChannels();
-               ++channel) {
-            buffer.clear(channel, processed, chunkSize);
-          }
-        }
-      }
-    } else {
-      // Non-AU builds (VST3, AAX): Direct processing without chunking
-      // These formats provide constant buffer sizes, so chunking is unnecessary
-      surroundPanner_->process(buffer, outputBuffer_);
-
-      const int copyChannels =
-          std::min(outputBuffer_.getNumChannels(), buffer.getNumChannels());
-      for (int channel = 0; channel < copyChannels; ++channel) {
-        buffer.copyFrom(channel, 0, outputBuffer_, channel, 0, hostBufferSize);
-      }
-      for (int channel = copyChannels; channel < buffer.getNumChannels();
-           ++channel) {
-        buffer.clear(channel, 0, hostBufferSize);
-      }
+    for (int channel = copyChannels; channel < buffer.getNumChannels();
+         ++channel) {
+      buffer.clear(channel, 0, hostBufferSize);
     }
   }
 
